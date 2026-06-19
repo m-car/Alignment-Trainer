@@ -1151,8 +1151,8 @@ function wireToolBtns(){
       ch.radialL    = snap(clamp( Math.cos(angle) * rMag,          -9, 9),   0.05);
       ch.radialR    = snap(clamp( Math.cos(angle) * rMag * (0.85 + Math.random()*0.3), -9, 9), 0.05);
       ch.axialShift = snap(clamp( Math.sin(angle) * aMag,          -9, 9),   0.05);
-      ch.midOffsetL = snap(clamp((Math.random()-0.5) * 3,          -2, 2),   MID_STEP);
-      ch.midOffsetR = snap(clamp((Math.random()-0.5) * 3,          -2, 2),   MID_STEP);
+      ch.midOffsetL = snap(clamp((Math.random()-0.5) * 3,          -2, 2),   0.01);
+      ch.midOffsetR = snap(clamp((Math.random()-0.5) * 3,          -2, 2),   0.01);
       ch.piezoSetL  = snap(clamp((Math.random()-0.5) * 800,      -500,500),  5);
       ch.piezoSetR  = snap(clamp((Math.random()-0.5) * 800,      -500,500),  5);
     });
