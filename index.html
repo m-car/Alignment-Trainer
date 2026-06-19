@@ -8,21 +8,22 @@
 * { box-sizing: border-box; margin: 0; padding: 0; }
 
 :root {
-  --bg:      #0d1117;
-  --panel:   #161b22;
-  --border:  #30363d;
-  --text:    #c9d1d9;
-  --dim:     #8b949e;
-  --accent:  #58a6ff;
-  --good:    #3fb950;
-  --warn:    #d29922;
-  --bad:     #f85149;
+  --bg:     #000;
+  --panel:  #0a0a0a;
+  --border: #222;
+  --text:   #ddd;
+  --dim:    #666;
+  --accent: #58a6ff;
+  --good:   #3fb950;
+  --warn:   #d29922;
+  --bad:    #f85149;
+  --green:  #80ff00;
 }
 
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Courier New', monospace;
+  font-family: Arial, sans-serif;
   font-size: 12px;
   height: 100vh;
   display: flex;
@@ -31,99 +32,229 @@ body {
   user-select: none;
 }
 
-/* ── HEADER ─────────────────────────────── */
+/* ── HEADER ────────────────────────────── */
 header {
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
-  padding: 7px 14px;
+  background: #0d0d0d;
+  border-bottom: 1px solid #1a1a1a;
+  padding: 6px 14px;
   display: flex;
   align-items: center;
-  gap: 16px;
+  gap: 14px;
   flex-shrink: 0;
 }
-
 header h1 {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--accent);
   letter-spacing: 2px;
   text-transform: uppercase;
   white-space: nowrap;
+  font-family: 'Courier New', monospace;
 }
-
 #overall-score {
   padding: 3px 10px;
-  border-radius: 4px;
-  font-size: 12px;
+  border-radius: 3px;
+  font-size: 11px;
   font-weight: bold;
   border: 1px solid var(--good);
   color: var(--good);
-  min-width: 60px;
+  min-width: 56px;
   text-align: center;
+  font-family: 'Courier New', monospace;
 }
-
-#channel-scores {
-  display: flex;
-  gap: 6px;
-  flex-wrap: nowrap;
-}
-
+#channel-scores { display: flex; gap: 5px; }
 .cscore {
-  padding: 2px 7px;
+  padding: 2px 6px;
   border-radius: 3px;
-  font-size: 10px;
+  font-size: 9px;
   border: 1px solid;
+  font-family: 'Courier New', monospace;
 }
+.hdr-spacer { flex: 1; }
 
-.header-spacer { flex: 1; }
-
-/* ── MAIN LAYOUT ─────────────────────────── */
+/* ── MAIN ──────────────────────────────── */
 #main {
   display: flex;
   flex: 1;
   overflow: hidden;
   gap: 1px;
-  background: var(--border);
+  background: #111;
 }
 
-/* ── CONTROLS ────────────────────────────── */
-#ctrl-panel {
-  background: var(--panel);
-  width: 238px;
+/* ── LEFT PANEL ────────────────────────── */
+#left-panel {
+  background: var(--bg);
+  width: 300px;
   flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* ── STATION GRID ──────────────────────── */
+#station-grid {
+  background: #050505;
+  border-bottom: 1px solid #1a1a1a;
+  padding: 10px 8px 6px;
+  flex-shrink: 0;
+}
+#station-grid-inner {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 5px;
+}
+
+/* Printhead icon */
+.st-icon {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  cursor: pointer;
+  padding: 3px 2px;
+  border-radius: 3px;
+  border: 2px solid transparent;
+  transition: border-color 0.12s, background 0.12s;
+  position: relative;
+}
+.st-icon:hover { background: rgba(255,255,255,0.04); }
+.st-icon.active { border-color: #fff; background: rgba(255,255,255,0.06); }
+.st-icon.pinning, .st-icon.uv { cursor: default; opacity: 0.6; }
+.st-icon.pinning:hover, .st-icon.uv:hover { background: none; }
+
+.si-pct {
+  font-size: 9px;
+  font-weight: bold;
+  color: #fff;
+  text-align: center;
+  line-height: 1.3;
+  min-height: 12px;
+}
+.si-name {
+  font-size: 8px;
+  text-align: center;
+  line-height: 1.2;
+  margin-bottom: 3px;
+  min-height: 10px;
+}
+
+/* Cable connector at top */
+.si-cable {
+  width: 18px;
+  height: 7px;
+  background: #1e1e1e;
+  border: 1px solid #333;
+  border-radius: 2px 2px 0 0;
+  margin-bottom: -1px;
+  z-index: 1;
+}
+
+/* Main body */
+.si-body {
+  width: 44px;
+  height: 64px;
+  border-width: 2px;
+  border-style: solid;
+  border-bottom: none;
+  border-radius: 2px 2px 0 0;
+  position: relative;
+  overflow: hidden;
+  background: rgba(0,0,0,0.5);
+}
+
+/* Upper solid zone */
+.si-top-fill {
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 14px;
+  background: rgba(255,255,255,0.05);
+}
+
+/* Diagonal hatching */
+.si-hatch {
+  position: absolute;
+  top: 14px; left: 0; right: 0;
+  bottom: 14px;
+  opacity: 0.75;
+}
+
+/* Lower solid zone */
+.si-bot-fill {
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 14px;
+  background: rgba(0,0,0,0.4);
+}
+
+/* Nozzle plate */
+.si-nozzles {
+  width: 44px;
+  height: 14px;
+  background: #111;
+  border-width: 2px;
+  border-style: solid;
+  border-top: none;
+  border-radius: 0 0 3px 3px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+}
+.si-dot {
+  width: 7px;
+  height: 7px;
+  background: var(--green);
+  border-radius: 1px;
+  box-shadow: 0 0 4px var(--green);
+}
+
+/* Station number */
+.si-num {
+  font-size: 9px;
+  color: var(--dim);
+  margin-top: 3px;
+  font-family: 'Courier New', monospace;
+}
+
+/* ALL station — striped body */
+.si-all-stripes {
+  width: 44px;
+  height: 64px;
+  border: 2px solid #555;
+  border-bottom: none;
+  border-radius: 2px 2px 0 0;
+  overflow: hidden;
+  display: flex;
+}
+.si-stripe { flex: 1; }
+
+/* ── CTRL PANEL ────────────────────────── */
+#ctrl-panel {
+  flex: 1;
   overflow-y: auto;
   overflow-x: hidden;
   padding: 10px 10px 14px;
-}
-
-#color-tabs {
-  display: flex;
-  gap: 2px;
-  margin-bottom: 11px;
-}
-
-.ctab {
-  flex: 1;
-  padding: 5px 1px;
-  border: 1px solid var(--border);
-  border-radius: 3px;
   background: var(--bg);
-  cursor: pointer;
-  font-size: 11px;
-  font-family: 'Courier New', monospace;
-  text-align: center;
-  color: var(--dim);
-  transition: all 0.1s;
 }
-.ctab.active { background: #1c2a3a; }
+
+#ctrl-station-title {
+  font-size: 11px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #1a1a1a;
+  letter-spacing: 1px;
+}
+
+#ctrl-body { display: block; }
 
 .section-title {
   font-size: 9px;
-  color: #555;
+  color: #444;
   text-transform: uppercase;
   letter-spacing: 1px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid #1a1a1a;
   padding-bottom: 3px;
   margin: 10px 0 7px;
+  font-family: 'Courier New', monospace;
 }
 
 .srow {
@@ -132,20 +263,19 @@ header h1 {
   gap: 5px;
   margin-bottom: 6px;
 }
-
 .srow label {
-  width: 78px;
+  width: 82px;
   font-size: 10px;
   color: var(--dim);
   flex-shrink: 0;
   white-space: nowrap;
+  font-family: 'Courier New', monospace;
 }
-
 .srow input[type=range] {
   flex: 1;
   height: 4px;
   -webkit-appearance: none;
-  background: var(--border);
+  background: #222;
   border-radius: 2px;
   cursor: pointer;
 }
@@ -157,13 +287,13 @@ header h1 {
   border-radius: 50%;
   cursor: pointer;
 }
-
 .sval {
-  width: 44px;
+  width: 48px;
   text-align: right;
   font-size: 10px;
   color: var(--accent);
   flex-shrink: 0;
+  font-family: 'Courier New', monospace;
 }
 
 /* Head table */
@@ -172,12 +302,13 @@ header h1 {
   border-collapse: collapse;
   font-size: 10px;
   margin-top: 2px;
+  font-family: 'Courier New', monospace;
 }
 #htable th {
-  color: #555;
+  color: #444;
   text-align: center;
   padding: 2px 2px 4px;
-  border-bottom: 1px solid var(--border);
+  border-bottom: 1px solid #1a1a1a;
   font-size: 9px;
 }
 #htable td {
@@ -186,36 +317,32 @@ header h1 {
   vertical-align: middle;
 }
 #htable tr:nth-child(even) { background: rgba(255,255,255,0.02); }
-.htab-mid td { background: rgba(88,166,255,0.07) !important; }
-
+.htab-mid td { background: rgba(88,166,255,0.06) !important; }
 #htable input[type=range] {
   width: 56px;
   height: 3px;
   -webkit-appearance: none;
-  background: var(--border);
+  background: #222;
   border-radius: 2px;
   cursor: pointer;
 }
 #htable input[type=range]::-webkit-slider-thumb {
   -webkit-appearance: none;
-  width: 8px;
-  height: 8px;
+  width: 8px; height: 8px;
   background: var(--accent);
   border-radius: 50%;
 }
-
-.hval { font-size: 9px; color: var(--accent); display: block; }
-.hlabel { font-size: 9px; color: var(--dim); }
-.hlabel.mid { color: var(--accent); }
+.hval  { font-size: 9px; color: var(--accent); display: block; }
+.hlbl  { font-size: 9px; color: var(--dim); }
+.hlbl.mid { color: var(--accent); }
 
 /* Buttons */
 .btn-row { display: flex; gap: 5px; margin-top: 8px; }
-
 button {
   flex: 1;
   padding: 6px 4px;
-  background: var(--bg);
-  border: 1px solid var(--border);
+  background: #060606;
+  border: 1px solid #222;
   color: var(--text);
   cursor: pointer;
   font-family: 'Courier New', monospace;
@@ -225,41 +352,36 @@ button {
   white-space: nowrap;
 }
 button:hover { border-color: var(--accent); color: var(--accent); }
-#btn-rand  { border-color: var(--warn); color: var(--warn); }
+#btn-rand     { border-color: var(--warn); color: var(--warn); }
 #btn-rand:hover { border-color: #ffcc00; color: #ffcc00; }
-#btn-reset { border-color: var(--bad); color: var(--bad); }
-#btn-ref   { border-color: var(--good); color: var(--good); }
+#btn-reset    { border-color: var(--bad);  color: var(--bad); }
+#btn-ref      { border-color: var(--good); color: var(--good); }
 
-/* ── UNROLLED VIEW ───────────────────────── */
+/* ── CENTER VIEW ───────────────────────── */
 #view-panel {
   flex: 1;
-  background: var(--bg);
+  background: #000;
   display: flex;
   flex-direction: column;
   min-width: 0;
   overflow: hidden;
 }
-
 .plabel {
   font-size: 9px;
-  color: #444;
+  color: #333;
   text-transform: uppercase;
   letter-spacing: 1px;
   padding: 4px 8px;
-  background: var(--panel);
-  border-bottom: 1px solid var(--border);
+  background: #0a0a0a;
+  border-bottom: 1px solid #1a1a1a;
   flex-shrink: 0;
+  font-family: 'Courier New', monospace;
 }
+#unrolled-canvas { flex: 1; display: block; min-height: 0; }
 
-#unrolled-canvas {
-  flex: 1;
-  display: block;
-  min-height: 0;
-}
-
-/* ── RIGHT PANEL ─────────────────────────── */
+/* ── RIGHT PANEL ───────────────────────── */
 #right-panel {
-  background: var(--panel);
+  background: #0a0a0a;
   width: 210px;
   flex-shrink: 0;
   display: flex;
@@ -267,111 +389,71 @@ button:hover { border-color: var(--accent); color: var(--accent); }
   overflow: hidden;
   gap: 1px;
 }
+#headbar-canvas, #topdown-canvas { display: block; flex-shrink: 0; }
 
-#headbar-canvas, #topdown-canvas {
-  display: block;
-  flex-shrink: 0;
-}
-
-/* ── FOOTER ──────────────────────────────── */
+/* ── FOOTER ────────────────────────────── */
 footer {
-  background: var(--panel);
-  border-top: 1px solid var(--border);
+  background: #0a0a0a;
+  border-top: 1px solid #1a1a1a;
   padding: 3px 12px;
   font-size: 9px;
-  color: #444;
+  color: #333;
   flex-shrink: 0;
   display: flex;
   gap: 20px;
   align-items: center;
+  font-family: 'Courier New', monospace;
 }
 #status { color: var(--dim); margin-left: auto; }
+
+/* Non-ink station message */
+#no-ctrl-msg {
+  color: #333;
+  font-size: 11px;
+  text-align: center;
+  padding: 20px 10px;
+  font-family: 'Courier New', monospace;
+}
 </style>
 </head>
 <body>
 
 <header>
-  <h1>&#9632; Can Printer — Alignment Trainer</h1>
-  <span style="color:#555;font-size:10px;">QUALITY</span>
+  <h1>&#9632; Can Printer &mdash; Alignment Trainer</h1>
+  <span style="color:#333;font-size:10px;">QUALITY</span>
   <div id="overall-score">100%</div>
   <div id="channel-scores"></div>
-  <div class="header-spacer"></div>
-  <span style="color:#555;font-size:10px;">W=underbase first &nbsp;|&nbsp; 2 cans simultaneous &nbsp;|&nbsp; 6 heads/color</span>
+  <div class="hdr-spacer"></div>
+  <span style="color:#333;font-size:10px;">Print order: W &rarr; K &rarr; Y &rarr; M &rarr; C</span>
 </header>
 
 <div id="main">
 
-  <!-- CONTROLS -->
-  <div id="ctrl-panel">
+  <!-- LEFT PANEL: station grid + controls -->
+  <div id="left-panel">
 
-    <div id="color-tabs"></div>
-
-    <div class="section-title">Bar Controls (all 6 heads)</div>
-
-    <div class="srow">
-      <label>Global X</label>
-      <input type="range" id="c-globalX" min="-30" max="30" step="0.5" value="0">
-      <span class="sval" id="v-globalX">0 px</span>
-    </div>
-    <div class="srow">
-      <label>Global Y</label>
-      <input type="range" id="c-globalY" min="-20" max="20" step="0.5" value="0">
-      <span class="sval" id="v-globalY">0 px</span>
-    </div>
-    <div class="srow">
-      <label>Radial Left</label>
-      <input type="range" id="c-radialL" min="-15" max="15" step="0.5" value="0">
-      <span class="sval" id="v-radialL">0</span>
-    </div>
-    <div class="srow">
-      <label>Radial Right</label>
-      <input type="range" id="c-radialR" min="-15" max="15" step="0.5" value="0">
-      <span class="sval" id="v-radialR">0</span>
+    <!-- Station selector grid -->
+    <div id="station-grid">
+      <div id="station-grid-inner">
+        <!-- built by JS -->
+      </div>
     </div>
 
-    <div class="section-title">Middle Head Motor (Y only)</div>
-
-    <div class="srow">
-      <label>Mid-L Y</label>
-      <input type="range" id="c-midLY" min="-500" max="500" step="5" value="0">
-      <span class="sval" id="v-midLY">0 µm</span>
-    </div>
-    <div class="srow">
-      <label>Mid-R Y</label>
-      <input type="range" id="c-midRY" min="-500" max="500" step="5" value="0">
-      <span class="sval" id="v-midRY">0 µm</span>
+    <!-- Controls for selected station -->
+    <div id="ctrl-panel">
+      <div id="ctrl-station-title">SELECT A STATION</div>
+      <div id="ctrl-body"></div>
     </div>
 
-    <div class="section-title">Per-Head Fine Controls</div>
-    <table id="htable">
-      <thead>
-        <tr>
-          <th>Head</th>
-          <th>Delay (µs)</th>
-          <th>Volt %</th>
-        </tr>
-      </thead>
-      <tbody id="htbody"></tbody>
-    </table>
+  </div>
 
-    <div class="btn-row">
-      <button id="btn-rand">RANDOMIZE</button>
-      <button id="btn-reset">RESET CHAN</button>
-    </div>
-    <div class="btn-row">
-      <button id="btn-resetall">RESET ALL</button>
-      <button id="btn-ref">SHOW REF</button>
-    </div>
-
-  </div><!-- end ctrl-panel -->
-
-  <!-- UNROLLED VIEW -->
+  <!-- CENTER: unrolled can view -->
   <div id="view-panel">
-    <div class="plabel">UNROLLED CAN VIEW &mdash; ALIGNMENT TEST PATTERN (W &rarr; K &rarr; Y &rarr; M &rarr; C)</div>
+    <div class="plabel" id="view-label">UNROLLED CAN VIEW &mdash; ALIGNMENT TEST PATTERN</div>
     <canvas id="unrolled-canvas"></canvas>
   </div>
 
-  <!-- RIGHT PANEL -->
+  <!-- RIGHT: headbar + top-down -->
   <div id="right-panel">
     <div class="plabel">PRINTHEAD BAR</div>
     <canvas id="headbar-canvas"></canvas>
@@ -379,75 +461,77 @@ footer {
     <canvas id="topdown-canvas"></canvas>
   </div>
 
-</div><!-- end main -->
+</div>
 
 <footer>
-  <span>Print order: W &rarr; K &rarr; Y &rarr; M &rarr; C &nbsp;|&nbsp; 2 cols × 3 heads/col &nbsp;|&nbsp; Middle head staggered &amp; motor-driven &nbsp;|&nbsp; Overlap zone blends adjacent heads</span>
-  <span id="status">Select a channel and adjust controls</span>
+  <span>Stations 4&ndash;12 &nbsp;|&nbsp; 6 heads/color, 2-col staggered &nbsp;|&nbsp; Middle head motor-driven &nbsp;|&nbsp; Tap station to adjust</span>
+  <span id="status">Tap a printhead station to begin</span>
 </footer>
 
 <script>
-// ═══════════════════════════════════════════════════════════
-// CONSTANTS
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// STATIONS  (matches real machine layout)
+// ════════════════════════════════════════════════════════════
+// chIdx: index into S.ch[]  (-1 = no channel, -2 = ALL)
+const STATIONS = [
+  { num:  4,    type: 'uv',      name: 'UV COAT',    cssColor: '#555',    chIdx: -1 },
+  { num:  5,    type: 'ink',     name: 'WHITE',      cssColor: '#e0e0e0', chIdx:  0 },
+  { num:  6,    type: 'pinning', name: 'PINNING',    cssColor: '#555',    chIdx: -1 },
+  { num:  7,    type: 'ink',     name: 'BLACK',      cssColor: '#888',    chIdx:  1 },
+  { num:  8,    type: 'ink',     name: 'YELLOW',     cssColor: '#ffe000', chIdx:  2 },
+  { num:  9,    type: 'ink',     name: 'MAGENTA',    cssColor: '#ec008c', chIdx:  3 },
+  { num: 10,    type: 'ink',     name: 'CYAN',       cssColor: '#00b7eb', chIdx:  4 },
+  { num: 11,    type: 'pinning', name: 'PINNING',    cssColor: '#555',    chIdx: -1 },
+  { num: 12,    type: 'pinning', name: 'SPOT LACQ.', cssColor: '#555',    chIdx: -1 },
+  { num: null,  type: 'all',     name: 'ALL',        cssColor: null,      chIdx: -2 },
+];
 
-const CHANNEL_KEYS   = ['W','C','M','Y','K'];
-const CHANNEL_NAMES  = ['White','Cyan','Magenta','Yellow','Black'];
+// Ink channels (index matches chIdx above)
+const CH_KEYS  = ['W',  'K',  'Y',  'M',  'C'];
+const CH_NAMES = ['White','Black','Yellow','Magenta','Cyan'];
+const CH_CSS   = ['#e0e0e0','#888888','#ffe000','#ec008c','#00b7eb'];
 
-// Ink RGBA for canvas rendering
-const INK = {
-  W: [245, 245, 245, 195],
-  C: [  0, 185, 235, 185],
-  M: [232,   0, 140, 185],
-  Y: [255, 225,   0, 185],
-  K: [ 15,  15,  15, 230],
-};
+// Ink RGBA for canvas rendering (render order: W→K→Y→M→C)
+const INK = [
+  [245, 245, 245, 190],  // 0 W
+  [ 15,  15,  15, 235],  // 1 K
+  [255, 222,   0, 185],  // 2 Y
+  [232,   0, 140, 185],  // 3 M
+  [  0, 183, 235, 185],  // 4 C
+];
 
-// Tab / label colors (CSS strings)
-const TAB_COLORS = ['#aaa','#00b7eb','#ec008c','#ccbb00','#888'];
+// Simulated ink coverage % for display (realistic looking defaults)
+const COVERAGE_DEFAULT = [31, 72, 86, 83, 84];
 
-// Head geometry in the unrolled canvas (native coordinates)
-const HEAD_PX_H   = 66;    // pixel height of each head's band
-const OVERLAP_PX  = 10;    // nozzle-overlap blending zone (px)
-const NET_H       = HEAD_PX_H - OVERLAP_PX;   // 56 px net advance per head
-const CAN_H       = NET_H * 2 + HEAD_PX_H;    // 178 px total printable height
-const CAN_W       = 268;   // unrolled circumference (px)
-const L_CAN_X     = 30;    // left can origin X
-const R_CAN_X     = 338;   // right can origin X
-const CAN_TOP_Y   = 44;    // can top margin
-
-// Middle head stagger (px) in head bar view (visual only)
-const MID_STAGGER  = 15;
-
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
 // STATE
-// ═══════════════════════════════════════════════════════════
-
-function newChannel() {
+// ════════════════════════════════════════════════════════════
+function newChannel(coveragePct) {
   return {
-    globalX:  0,    // px — all heads horizontal (color registration)
-    globalY:  0,    // px — all heads vertical
-    radialL:  0,    // px — timing offset for left column (can 1)
-    radialR:  0,    // px — timing offset for right column (can 2)
-    midLY:    0,    // µm — middle head left column Y motor
-    midRY:    0,    // µm — middle head right column Y motor
+    coverage: coveragePct,  // display only
+    globalX:  0,
+    globalY:  0,
+    radialL:  0,
+    radialR:  0,
+    midLY:    0,  // µm
+    midRY:    0,  // µm
     heads: Array.from({length: 6}, () => ({
-      delay:   0,   // µs → rendered as px shift (range ±20)
-      voltage: 100, // % of nominal (range 60–140)
+      delay:   0,    // µs → px offset in sim
+      voltage: 100,  // %
     })),
   };
 }
 
 const S = {
-  sel:    0,          // selected channel index
+  selSt:   -1,   // selected STATIONS[] index
+  selCh:   -1,   // selected channel index (-1 if non-ink)
   showRef: false,
-  ch: CHANNEL_KEYS.map(() => newChannel()),
+  ch: CH_KEYS.map((_, i) => newChannel(COVERAGE_DEFAULT[i])),
 };
 
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
 // CANVAS REFS
-// ═══════════════════════════════════════════════════════════
-
+// ════════════════════════════════════════════════════════════
 const uCanvas  = document.getElementById('unrolled-canvas');
 const uCtx     = uCanvas.getContext('2d');
 const hbCanvas = document.getElementById('headbar-canvas');
@@ -455,106 +539,84 @@ const hbCtx    = hbCanvas.getContext('2d');
 const tdCanvas = document.getElementById('topdown-canvas');
 const tdCtx    = tdCanvas.getContext('2d');
 
-// ═══════════════════════════════════════════════════════════
-// GEOMETRY HELPERS
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// GEOMETRY
+// ════════════════════════════════════════════════════════════
+const HEAD_PX_H  = 66;
+const OVERLAP_PX = 10;
+const NET_H      = HEAD_PX_H - OVERLAP_PX;   // 56
+const CAN_H      = NET_H * 2 + HEAD_PX_H;    // 178
+const CAN_W      = 268;
+const L_CAN_X    = 30;
+const R_CAN_X    = 338;
+const CAN_TOP_Y  = 44;
+const MID_STAGGER = 15;
 
-// headInCol: 0=top, 1=mid, 2=bottom
-// colIdx:    0=left(can1), 1=right(can2)
-// globalHeadIdx: colIdx*3 + headInCol  →  0-5
+function headBaseY(hi) { return hi * NET_H; }
 
-function headBaseY(headInCol) {
-  return headInCol * NET_H;
-}
-
-function headParams(chIdx, colIdx, headInCol) {
+function headParams(chIdx, col, hi) {
   const ch  = S.ch[chIdx];
-  const ghi = colIdx * 3 + headInCol;   // global head index 0-5
+  const ghi = col * 3 + hi;
   const h   = ch.heads[ghi];
-
-  // Radial timing → X offset
-  const radial = colIdx === 0 ? ch.radialL : ch.radialR;
-  const dx = ch.globalX + radial + h.delay * 0.5;
-
-  // Y position
-  let dy = ch.globalY;
-  if (headInCol === 1) {
-    const motorPx = (colIdx === 0 ? ch.midLY : ch.midRY) / 100; // 500µm → 5px
-    dy += motorPx;
-  }
-
-  const canX = colIdx === 0 ? L_CAN_X : R_CAN_X;
-  return {
-    bx: canX + dx,
-    by: CAN_TOP_Y + headBaseY(headInCol) + dy,
-    bw: CAN_W,
-    bh: HEAD_PX_H,
-    voltage: h.voltage,
-    dx, dy,
-  };
+  const rad = col === 0 ? ch.radialL : ch.radialR;
+  const dx  = ch.globalX + rad + h.delay * 0.5;
+  let   dy  = ch.globalY;
+  if (hi === 1) dy += (col === 0 ? ch.midLY : ch.midRY) / 100;
+  const canX = col === 0 ? L_CAN_X : R_CAN_X;
+  return { bx: canX + dx, by: CAN_TOP_Y + headBaseY(hi) + dy,
+           bw: CAN_W, bh: HEAD_PX_H, voltage: h.voltage, dx, dy };
 }
 
-// ═══════════════════════════════════════════════════════════
-// RENDER — UNROLLED CAN VIEW
-// ═══════════════════════════════════════════════════════════
-
+// ════════════════════════════════════════════════════════════
+// RENDER — UNROLLED
+// ════════════════════════════════════════════════════════════
 function drawCanBg(ctx, cx) {
-  // Aluminium can surface
-  const grad = ctx.createLinearGradient(cx, 0, cx + CAN_W, 0);
-  grad.addColorStop(0,   '#d8d8d8');
-  grad.addColorStop(0.15,'#efefef');
-  grad.addColorStop(0.5, '#f8f8f8');
-  grad.addColorStop(0.85,'#efefef');
-  grad.addColorStop(1,   '#d8d8d8');
-  ctx.fillStyle = grad;
+  const g = ctx.createLinearGradient(cx, 0, cx + CAN_W, 0);
+  g.addColorStop(0,    '#c8c8c8');
+  g.addColorStop(0.15, '#e8e8e8');
+  g.addColorStop(0.5,  '#f4f4f4');
+  g.addColorStop(0.85, '#e8e8e8');
+  g.addColorStop(1,    '#c8c8c8');
+  ctx.fillStyle = g;
   ctx.fillRect(cx, CAN_TOP_Y, CAN_W, CAN_H);
-  ctx.strokeStyle = '#bbb';
+  ctx.strokeStyle = '#999';
   ctx.lineWidth = 1;
   ctx.strokeRect(cx, CAN_TOP_Y, CAN_W, CAN_H);
 }
 
-function drawBand(ctx, chIdx, colIdx, headInCol) {
-  const p   = headParams(chIdx, colIdx, headInCol);
-  const key = CHANNEL_KEYS[chIdx];
-  const [r,g,b,ba] = INK[key];
+function drawBand(ctx, chIdx, col, hi) {
+  const p  = headParams(chIdx, col, hi);
+  const [r,g,b,ba] = INK[chIdx];
+  const vs = Math.min(1.4, Math.max(0.4, p.voltage / 100));
+  const al = Math.min(1, (ba / 255) * vs);
 
-  const voltScale = Math.min(1.4, Math.max(0.4, p.voltage / 100));
-  const alpha = Math.min(1, (ba / 255) * voltScale);
-
-  // Clip to can area
-  const canX = colIdx === 0 ? L_CAN_X : R_CAN_X;
+  const cx = col === 0 ? L_CAN_X : R_CAN_X;
   ctx.save();
   ctx.beginPath();
-  ctx.rect(canX, CAN_TOP_Y, CAN_W, CAN_H);
+  ctx.rect(cx, CAN_TOP_Y, CAN_W, CAN_H);
   ctx.clip();
 
-  // Ink band
-  ctx.fillStyle = `rgba(${r},${g},${b},${alpha})`;
+  ctx.fillStyle = `rgba(${r},${g},${b},${al})`;
   ctx.fillRect(p.bx, p.by, p.bw, p.bh);
 
-  // Fine horizontal nozzle lines (subtle texture)
-  ctx.fillStyle = `rgba(0,0,0,0.06)`;
+  // Nozzle texture
+  ctx.fillStyle = 'rgba(0,0,0,0.05)';
   for (let ly = p.by; ly < p.by + p.bh; ly += 4) {
     ctx.fillRect(p.bx, ly, p.bw, 1.5);
   }
-
-  // Voltage-low: add gap streaks
+  // Low voltage streaks
   if (p.voltage < 88) {
     const gap = Math.floor((88 - p.voltage) / 6);
-    ctx.fillStyle = 'rgba(255,255,255,0.35)';
-    for (let ly = p.by + 2; ly < p.by + p.bh; ly += 8) {
-      ctx.fillRect(p.bx, ly, p.bw, gap);
-    }
+    ctx.fillStyle = 'rgba(255,255,255,0.4)';
+    for (let ly = p.by + 2; ly < p.by + p.bh; ly += 8) ctx.fillRect(p.bx, ly, p.bw, gap);
   }
-
-  // Voltage-high: bleed glow beyond band edges
+  // High voltage bleed
   if (p.voltage > 112) {
-    const bleed = (p.voltage - 112) * 0.12;
-    ctx.fillStyle = `rgba(${r},${g},${b},${bleed * 0.4})`;
-    ctx.fillRect(p.bx, p.by - bleed * 2, p.bw, bleed * 2);
-    ctx.fillRect(p.bx, p.by + p.bh, p.bw, bleed * 2);
+    const bl = (p.voltage - 112) * 0.12;
+    ctx.fillStyle = `rgba(${r},${g},${b},${bl * 0.35})`;
+    ctx.fillRect(p.bx, p.by - bl * 2, p.bw, bl * 2);
+    ctx.fillRect(p.bx, p.by + p.bh, p.bw, bl * 2);
   }
-
   ctx.restore();
 }
 
@@ -567,441 +629,325 @@ function drawRegMark(ctx, x, y, color) {
   ctx.moveTo(x - s, y); ctx.lineTo(x + s, y);
   ctx.moveTo(x, y - s); ctx.lineTo(x, y + s);
   ctx.stroke();
-  ctx.beginPath();
-  ctx.arc(x, y, s * 0.38, 0, Math.PI * 2);
-  ctx.stroke();
+  ctx.beginPath(); ctx.arc(x, y, s * 0.38, 0, Math.PI * 2); ctx.stroke();
   ctx.restore();
 }
 
-function drawGapOverlapIndicators(ctx, colIdx) {
-  const canX = colIdx === 0 ? L_CAN_X : R_CAN_X;
-  // Check dominant (selected) channel for gap/overlap visualization
-  const ch = S.ch[S.sel];
-
+function drawGapOverlap(ctx, col) {
+  if (S.selCh < 0) return;
+  const cx = col === 0 ? L_CAN_X : R_CAN_X;
   for (let pair = 0; pair < 2; pair++) {
-    const p0 = headParams(S.sel, colIdx, pair);
-    const p1 = headParams(S.sel, colIdx, pair + 1);
-
-    const bottom0 = p0.by + p0.bh;
-    const top1    = p1.by;
-    const diff    = top1 - bottom0; // positive=gap, negative=extra overlap beyond design
-
+    const p0 = headParams(S.selCh, col, pair);
+    const p1 = headParams(S.selCh, col, pair + 1);
+    const bot0 = p0.by + p0.bh, top1 = p1.by;
+    const diff = top1 - bot0;
+    ctx.save();
+    ctx.beginPath(); ctx.rect(cx, CAN_TOP_Y, CAN_W, CAN_H); ctx.clip();
     if (diff > 2) {
-      // Unintended gap — yellow warning stripe
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(canX, CAN_TOP_Y, CAN_W, CAN_H);
-      ctx.clip();
-      ctx.fillStyle = 'rgba(255,210,30,0.45)';
-      ctx.fillRect(canX, bottom0, CAN_W, diff);
-      ctx.setLineDash([3, 3]);
-      ctx.strokeStyle = 'rgba(255,210,30,0.8)';
+      ctx.fillStyle = 'rgba(255,200,30,0.45)';
+      ctx.fillRect(cx, bot0, CAN_W, diff);
+      ctx.setLineDash([3,3]);
+      ctx.strokeStyle = 'rgba(255,200,30,0.9)';
       ctx.lineWidth = 1;
       ctx.beginPath();
-      ctx.moveTo(canX, bottom0); ctx.lineTo(canX + CAN_W, bottom0);
-      ctx.moveTo(canX, top1);    ctx.lineTo(canX + CAN_W, top1);
+      ctx.moveTo(cx, bot0); ctx.lineTo(cx + CAN_W, bot0);
+      ctx.moveTo(cx, top1); ctx.lineTo(cx + CAN_W, top1);
       ctx.stroke();
-      ctx.restore();
     } else if (diff < -(OVERLAP_PX + 4)) {
-      // Excessive double-print overlap — red band
-      const excessTop    = p1.by;
-      const excessBottom = bottom0;
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(canX, CAN_TOP_Y, CAN_W, CAN_H);
-      ctx.clip();
-      ctx.fillStyle = 'rgba(248,81,73,0.25)';
-      ctx.fillRect(canX, excessTop, CAN_W, excessBottom - excessTop);
-      ctx.restore();
+      ctx.fillStyle = 'rgba(248,81,73,0.22)';
+      ctx.fillRect(cx, p1.by, CAN_W, p0.by + p0.bh - p1.by);
     }
+    ctx.restore();
   }
 }
 
 function renderUnrolled() {
-  const W = uCanvas.width;
-  const H = uCanvas.height;
+  const W = uCanvas.width, H = uCanvas.height;
   uCtx.clearRect(0, 0, W, H);
-  uCtx.fillStyle = '#0a0d12';
+  uCtx.fillStyle = '#000';
   uCtx.fillRect(0, 0, W, H);
 
-  // Scale to fit
-  const nativeW = R_CAN_X + CAN_W + 30;
-  const nativeH = CAN_TOP_Y + CAN_H + 36;
-  const scaleX  = (W - 8) / nativeW;
-  const scaleY  = (H - 8) / nativeH;
-  const sc      = Math.min(scaleX, scaleY, 1.4);
+  const nW  = R_CAN_X + CAN_W + 50;
+  const nH  = CAN_TOP_Y + CAN_H + 36;
+  const sc  = Math.min((W - 8) / nW, (H - 8) / nH, 1.4);
 
   uCtx.save();
   uCtx.translate(4, 4);
   uCtx.scale(sc, sc);
 
   // Can labels
-  uCtx.font = '11px Courier New';
-  uCtx.fillStyle = '#555';
+  uCtx.font = '11px Arial'; uCtx.fillStyle = '#333';
   uCtx.fillText('CAN 1', L_CAN_X + 4, CAN_TOP_Y - 8);
   uCtx.fillText('CAN 2', R_CAN_X + 4, CAN_TOP_Y - 8);
 
-  // White (head band reference lines on can bg)
   drawCanBg(uCtx, L_CAN_X);
   drawCanBg(uCtx, R_CAN_X);
 
-  // Reference ghost (ideal alignment)
+  // Reference ghost
   if (S.showRef) {
     uCtx.save();
-    uCtx.setLineDash([4, 4]);
-    uCtx.strokeStyle = 'rgba(255,255,80,0.35)';
+    uCtx.setLineDash([4,4]);
+    uCtx.strokeStyle = 'rgba(255,255,80,0.3)';
     uCtx.lineWidth = 1;
     for (let col = 0; col < 2; col++) {
       const cx = col === 0 ? L_CAN_X : R_CAN_X;
-      for (let h = 0; h < 3; h++) {
-        const by = CAN_TOP_Y + headBaseY(h);
-        uCtx.strokeRect(cx, by, CAN_W, HEAD_PX_H);
+      for (let hi = 0; hi < 3; hi++) {
+        uCtx.strokeRect(cx, CAN_TOP_Y + headBaseY(hi), CAN_W, HEAD_PX_H);
       }
     }
     uCtx.restore();
   }
 
-  // Ideal head-boundary lines on can surface
+  // Ideal head boundary guides
   for (let col = 0; col < 2; col++) {
     const cx = col === 0 ? L_CAN_X : R_CAN_X;
     uCtx.save();
-    uCtx.strokeStyle = 'rgba(150,150,150,0.2)';
+    uCtx.strokeStyle = 'rgba(120,120,120,0.18)';
     uCtx.lineWidth = 0.8;
-    uCtx.setLineDash([3, 5]);
-    for (let h = 1; h < 3; h++) {
-      const by = CAN_TOP_Y + headBaseY(h);
-      uCtx.beginPath();
-      uCtx.moveTo(cx, by); uCtx.lineTo(cx + CAN_W, by);
-      uCtx.stroke();
+    uCtx.setLineDash([3,5]);
+    for (let hi = 1; hi < 3; hi++) {
+      const by = CAN_TOP_Y + headBaseY(hi);
+      uCtx.beginPath(); uCtx.moveTo(cx, by); uCtx.lineTo(cx + CAN_W, by); uCtx.stroke();
     }
     uCtx.restore();
   }
 
-  // Draw channels in printing order: W → K → Y → M → C
-  [0, 4, 3, 2, 1].forEach(chIdx => {
+  // Ink bands: W→K→Y→M→C
+  for (let chIdx = 0; chIdx < 5; chIdx++) {
     for (let col = 0; col < 2; col++) {
-      for (let h = 0; h < 3; h++) {
-        drawBand(uCtx, chIdx, col, h);
+      for (let hi = 0; hi < 3; hi++) {
+        drawBand(uCtx, chIdx, col, hi);
       }
     }
-  });
-
-  // Gap/overlap indicators for selected channel
-  for (let col = 0; col < 2; col++) {
-    drawGapOverlapIndicators(uCtx, col);
   }
 
-  // Registration crosshairs — all 5 colors
-  const regPoints = [
-    { lx: L_CAN_X + 22,          ry: CAN_TOP_Y + 22 },
-    { lx: L_CAN_X + CAN_W - 22,  ry: CAN_TOP_Y + 22 },
-    { lx: L_CAN_X + CAN_W / 2,   ry: CAN_TOP_Y + CAN_H / 2 },
-    { lx: L_CAN_X + 22,          ry: CAN_TOP_Y + CAN_H - 22 },
-    { lx: L_CAN_X + CAN_W - 22,  ry: CAN_TOP_Y + CAN_H - 22 },
-  ];
+  // Gap/overlap for selected channel
+  for (let col = 0; col < 2; col++) drawGapOverlap(uCtx, col);
 
-  const regColors = ['rgba(200,200,200,0.9)','rgba(0,183,235,0.9)','rgba(236,0,140,0.9)','rgba(220,200,0,0.9)','rgba(255,255,255,0.9)'];
+  // Registration crosshairs — all ink channels
+  const regPts = [
+    { lx: L_CAN_X + 22,         ry: CAN_TOP_Y + 22 },
+    { lx: L_CAN_X + CAN_W - 22, ry: CAN_TOP_Y + 22 },
+    { lx: L_CAN_X + CAN_W / 2,  ry: CAN_TOP_Y + CAN_H / 2 },
+    { lx: L_CAN_X + 22,         ry: CAN_TOP_Y + CAN_H - 22 },
+    { lx: L_CAN_X + CAN_W - 22, ry: CAN_TOP_Y + CAN_H - 22 },
+  ];
+  const regC = ['rgba(210,210,210,0.9)','rgba(180,180,180,0.9)',
+                 'rgba(255,220,0,0.9)','rgba(236,0,140,0.9)',
+                 'rgba(0,183,235,0.9)'];
 
   for (let chIdx = 0; chIdx < 5; chIdx++) {
     const ch = S.ch[chIdx];
-    regPoints.forEach(pt => {
-      // Left can reg marks (use left column offset)
-      const xL = ch.globalX + ch.radialL;
-      const yC = ch.globalY;
-      const cx = (pt.lx || L_CAN_X + CAN_W / 2);
-
-      uCtx.save();
-      uCtx.beginPath();
-      uCtx.rect(L_CAN_X, CAN_TOP_Y, CAN_W, CAN_H);
-      uCtx.clip();
-      drawRegMark(uCtx, pt.lx + xL, pt.ry + yC, regColors[chIdx]);
+    regPts.forEach(pt => {
+      const xL = ch.globalX + ch.radialL, yO = ch.globalY;
+      uCtx.save(); uCtx.beginPath();
+      uCtx.rect(L_CAN_X, CAN_TOP_Y, CAN_W, CAN_H); uCtx.clip();
+      drawRegMark(uCtx, pt.lx + xL, pt.ry + yO, regC[chIdx]);
       uCtx.restore();
 
-      // Right can reg marks
       const xR = ch.globalX + ch.radialR;
       const rx  = pt.lx + (R_CAN_X - L_CAN_X);
-      uCtx.save();
-      uCtx.beginPath();
-      uCtx.rect(R_CAN_X, CAN_TOP_Y, CAN_W, CAN_H);
-      uCtx.clip();
-      drawRegMark(uCtx, rx + xR, pt.ry + yC, regColors[chIdx]);
+      uCtx.save(); uCtx.beginPath();
+      uCtx.rect(R_CAN_X, CAN_TOP_Y, CAN_W, CAN_H); uCtx.clip();
+      drawRegMark(uCtx, rx + xR, pt.ry + yO, regC[chIdx]);
       uCtx.restore();
     });
   }
 
-  // Head band number labels on right margin
-  uCtx.font = '9px Courier New';
-  uCtx.fillStyle = '#444';
-  uCtx.textAlign = 'left';
-  const lblX = R_CAN_X + CAN_W + 4;
-  ['H1/H4','H2/H5','H3/H6'].forEach((lbl, i) => {
-    const y = CAN_TOP_Y + headBaseY(i) + HEAD_PX_H / 2 + 4;
-    uCtx.fillText(lbl, lblX, y);
+  // Head labels on right margin
+  uCtx.font = '9px Courier New'; uCtx.fillStyle = '#333'; uCtx.textAlign = 'left';
+  ['H1/H4','H2/H5','H3/H6'].forEach((l,i) => {
+    uCtx.fillText(l, R_CAN_X + CAN_W + 4, CAN_TOP_Y + headBaseY(i) + HEAD_PX_H / 2 + 3);
   });
-  // Overlap zone marks
-  uCtx.fillStyle = '#2a4a2a';
-  uCtx.fillText('↕ blend', lblX, CAN_TOP_Y + NET_H + 4);
-  uCtx.fillText('↕ blend', lblX, CAN_TOP_Y + NET_H * 2 + 4);
 
-  // Color legend
-  const legY = CAN_TOP_Y + CAN_H + 20;
-  CHANNEL_KEYS.forEach((key, i) => {
-    const [r,g,b] = INK[key];
-    uCtx.fillStyle = i === 4 ? '#666' : `rgb(${r},${g},${b})`;
-    uCtx.fillRect(L_CAN_X + i * 56, legY, 10, 10);
-    uCtx.fillStyle = '#555';
-    uCtx.font = '10px Courier New';
+  // Legend
+  const legY = CAN_TOP_Y + CAN_H + 18;
+  CH_KEYS.forEach((k, i) => {
+    const [r,g,b] = INK[i];
+    uCtx.fillStyle = `rgb(${r},${g},${b})`;
+    uCtx.fillRect(L_CAN_X + i * 52, legY, 9, 9);
+    uCtx.fillStyle = '#444'; uCtx.font = '9px Arial';
     uCtx.textAlign = 'left';
-    uCtx.fillText(CHANNEL_NAMES[i], L_CAN_X + i * 56 + 13, legY + 9);
+    uCtx.fillText(CH_NAMES[i], L_CAN_X + i * 52 + 12, legY + 8);
   });
 
   uCtx.restore();
 }
 
-// ═══════════════════════════════════════════════════════════
-// RENDER — PRINTHEAD BAR VIEW
-// ═══════════════════════════════════════════════════════════
-
+// ════════════════════════════════════════════════════════════
+// RENDER — HEAD BAR
+// ════════════════════════════════════════════════════════════
 function renderHeadBar() {
-  const W = hbCanvas.width;
-  const H = hbCanvas.height;
+  const W = hbCanvas.width, H = hbCanvas.height;
   hbCtx.clearRect(0, 0, W, H);
-  hbCtx.fillStyle = '#0a0d12';
-  hbCtx.fillRect(0, 0, W, H);
+  hbCtx.fillStyle = '#000'; hbCtx.fillRect(0, 0, W, H);
 
-  const ch  = S.ch[S.sel];
-  const key = CHANNEL_KEYS[S.sel];
-  const [r,g,b] = INK[key];
+  const chIdx = S.selCh < 0 ? 0 : S.selCh;
+  const ch    = S.ch[chIdx];
+  const [r,g,b] = INK[chIdx];
   const inkCSS  = `rgb(${r},${g},${b})`;
 
-  // Layout
-  const headW    = 60;
-  const headH    = 36;
-  const colGap   = 18;
-  const rowGap   = 48;
-  const totalW   = headW * 2 + colGap;
-  const sx       = (W - totalW) / 2;
-  const sy       = 24;
+  const headW = 58, headH = 34, colGap = 16, rowGap = 46;
+  const totalW = headW * 2 + colGap;
+  const sx = (W - totalW) / 2, sy = 22;
 
-  // Print plate background
-  const plateH = rowGap * 2 + headH + 10;
-  hbCtx.fillStyle = '#161b22';
-  hbCtx.fillRect(sx - 8, sy - 6, totalW + 16, plateH);
-  hbCtx.strokeStyle = '#30363d';
-  hbCtx.lineWidth = 1.5;
-  hbCtx.strokeRect(sx - 8, sy - 6, totalW + 16, plateH);
+  // Plate
+  hbCtx.fillStyle = '#0d0d0d';
+  hbCtx.fillRect(sx - 8, sy - 6, totalW + 16, rowGap * 2 + headH + 10);
+  hbCtx.strokeStyle = '#222'; hbCtx.lineWidth = 1.5;
+  hbCtx.strokeRect(sx - 8, sy - 6, totalW + 16, rowGap * 2 + headH + 10);
 
-  // Column labels
-  hbCtx.font = '9px Courier New';
-  hbCtx.fillStyle = '#444';
-  hbCtx.textAlign = 'center';
+  hbCtx.font = '9px Arial'; hbCtx.fillStyle = '#333'; hbCtx.textAlign = 'center';
   hbCtx.fillText('CAN 1', sx + headW / 2, sy - 10);
   hbCtx.fillText('CAN 2', sx + headW + colGap + headW / 2, sy - 10);
 
   for (let col = 0; col < 2; col++) {
     const colX = sx + col * (headW + colGap);
-    const radial = col === 0 ? ch.radialL : ch.radialR;
+    const rad  = col === 0 ? ch.radialL : ch.radialR;
 
     for (let hi = 0; hi < 3; hi++) {
-      const ghi  = col * 3 + hi;
-      const head = ch.heads[ghi];
+      const ghi   = col * 3 + hi;
+      const head  = ch.heads[ghi];
       const isMid = hi === 1;
+      const stag  = isMid ? MID_STAGGER * 0.5 : 0;
+      let   mPx   = 0;
+      if (isMid) mPx = (col === 0 ? ch.midLY : ch.midRY) / 500 * 5;
 
-      // Stagger: middle head offset toward center
-      const stagger = isMid ? MID_STAGGER * 0.5 : 0;
+      const hy = sy + hi * rowGap + mPx + ch.globalY * 0.5;
+      const hx = colX + stag;
 
-      // Y from motor / global Y (scaled for visual)
-      let motorPx = 0;
-      if (isMid) {
-        motorPx = (col === 0 ? ch.midLY : ch.midRY) / 500 * 5;
-      }
-      const hy = sy + hi * rowGap + motorPx + ch.globalY * 0.5;
-      const hx = colX + stagger;
-
-      // Gap/overlap indicator between heads
+      // Gap/overlap
       if (hi > 0) {
-        const prevHi   = hi - 1;
-        const prevMPx  = prevHi === 1 ? (col === 0 ? ch.midLY : ch.midRY) / 500 * 5 : 0;
-        const prevY    = sy + prevHi * rowGap + prevMPx + ch.globalY * 0.5;
-        const prevBot  = prevY + headH;
-        const expectedOverlap = rowGap - headH;  // natural overlap if heads are flush
-
-        const actualGap = hy - prevBot;
-        if (actualGap > 2) {
+        const pm  = hi - 1 === 1 ? (col === 0 ? ch.midLY : ch.midRY) / 500 * 5 : 0;
+        const pby = sy + (hi - 1) * rowGap + pm + ch.globalY * 0.5 + headH;
+        const gap = hy - pby;
+        if (gap > 2) {
           hbCtx.fillStyle = 'rgba(255,200,30,0.3)';
-          hbCtx.fillRect(colX, prevBot, headW, actualGap);
-        } else if (actualGap < -2) {
-          hbCtx.fillStyle = 'rgba(248,81,73,0.25)';
-          hbCtx.fillRect(colX, hy, headW, Math.abs(actualGap));
+          hbCtx.fillRect(colX, pby, headW, gap);
+        } else if (gap < -2) {
+          hbCtx.fillStyle = 'rgba(248,81,73,0.22)';
+          hbCtx.fillRect(colX, hy, headW, -gap);
         }
       }
 
-      // Head body
-      const voltScale = head.voltage / 100;
-      hbCtx.fillStyle = `rgba(${r},${g},${b},${0.55 * voltScale})`;
+      const vs = head.voltage / 100;
+      hbCtx.fillStyle = `rgba(${r},${g},${b},${0.5 * vs})`;
       hbCtx.fillRect(hx, hy, headW, headH);
-
-      hbCtx.strokeStyle = isMid ? var_accent() : inkCSS;
+      hbCtx.strokeStyle = isMid ? '#58a6ff' : inkCSS;
       hbCtx.lineWidth   = isMid ? 2 : 1;
       hbCtx.strokeRect(hx, hy, headW, headH);
 
       // Nozzle strip
       hbCtx.fillStyle = `rgba(${r},${g},${b},0.9)`;
       const nw = (headW - 8) / 9;
-      for (let n = 0; n < 9; n++) {
-        hbCtx.fillRect(hx + 4 + n * nw, hy + headH - 4, nw - 1, 3);
-      }
+      for (let n = 0; n < 9; n++) hbCtx.fillRect(hx + 4 + n * nw, hy + headH - 4, nw - 1, 3);
 
-      // Labels
       hbCtx.font = '9px Courier New';
-      hbCtx.fillStyle = isMid ? '#58a6ff' : '#c9d1d9';
+      hbCtx.fillStyle = isMid ? '#58a6ff' : '#bbb';
       hbCtx.textAlign = 'center';
-      hbCtx.fillText(`H${ghi + 1}`, hx + headW / 2, hy + 12);
-      hbCtx.fillStyle = '#555';
+      hbCtx.fillText(`H${ghi + 1}`, hx + headW / 2, hy + 11);
+      hbCtx.fillStyle = '#444';
       hbCtx.font = '8px Courier New';
-      hbCtx.fillText(`${head.voltage}%`, hx + headW / 2, hy + 22);
-      hbCtx.fillText(`d:${fmtSigned(head.delay)}`, hx + headW / 2, hy + 31);
+      hbCtx.fillText(`${head.voltage}%`, hx + headW / 2, hy + 21);
+      hbCtx.fillText(`d:${fmt(head.delay)}`, hx + headW / 2, hy + 30);
 
-      // Motor indicator for middle head
       if (isMid) {
         const mv = col === 0 ? ch.midLY : ch.midRY;
         hbCtx.fillStyle = '#58a6ff';
         hbCtx.font = '8px Courier New';
         hbCtx.textAlign = 'left';
-        hbCtx.fillText(`${fmtSigned(mv)}µm`, hx + headW + 2, hy + headH / 2 + 3);
+        hbCtx.fillText(`${fmt(mv)}µm`, hx + headW + 2, hy + headH / 2 + 3);
         hbCtx.textAlign = 'center';
-        // Motor arrow
-        hbCtx.beginPath();
-        const ax = hx - 6, ay = hy + headH / 2;
-        if (mv > 0) {
-          hbCtx.moveTo(ax, ay - 4); hbCtx.lineTo(ax, ay + 4); hbCtx.lineTo(ax - 4, ay);
-        } else if (mv < 0) {
-          hbCtx.moveTo(ax, ay - 4); hbCtx.lineTo(ax, ay + 4); hbCtx.lineTo(ax + 4, ay);
-        }
-        hbCtx.fillStyle = '#58a6ff';
-        hbCtx.fill();
       }
     }
 
-    // Radial / timing label
-    const radY = sy + plateH - 6 + 18;
-    hbCtx.font = '8px Courier New';
-    hbCtx.fillStyle = '#58a6ff';
-    hbCtx.textAlign = 'center';
-    hbCtx.fillText(`↔ ${fmtSigned(radial)} px`, colX + headW / 2, radY);
-    hbCtx.fillStyle = '#444';
-    hbCtx.fillText('radial timing', colX + headW / 2, radY + 10);
+    // Radial label
+    const ry = sy + rowGap * 2 + headH + 14;
+    hbCtx.font = '8px Courier New'; hbCtx.fillStyle = '#58a6ff'; hbCtx.textAlign = 'center';
+    hbCtx.fillText(`${fmt(rad)}`, colX + headW / 2, ry);
+    hbCtx.fillStyle = '#333';
+    hbCtx.fillText('radial', colX + headW / 2, ry + 10);
   }
 
-  // Channel label
-  hbCtx.font = 'bold 10px Courier New';
-  hbCtx.fillStyle = inkCSS;
+  // Title
+  const st = S.selSt >= 0 ? STATIONS[S.selSt] : null;
+  const lbl = st ? st.name : CH_NAMES[chIdx];
+  hbCtx.font = 'bold 9px Arial'; hbCtx.fillStyle = S.selCh >= 0 ? inkCSS : '#444';
   hbCtx.textAlign = 'center';
-  hbCtx.fillText(`${CHANNEL_NAMES[S.sel].toUpperCase()}`, W / 2, H - 4);
+  hbCtx.fillText(lbl.toUpperCase(), W / 2, H - 4);
 }
 
-function var_accent() { return '#58a6ff'; }
-function fmtSigned(v) { return (v > 0 ? '+' : '') + (typeof v === 'number' ? v.toFixed(v % 1 === 0 ? 0 : 1) : v); }
-
-// ═══════════════════════════════════════════════════════════
-// RENDER — TOP-DOWN VIEW
-// ═══════════════════════════════════════════════════════════
-
+// ════════════════════════════════════════════════════════════
+// RENDER — TOP DOWN
+// ════════════════════════════════════════════════════════════
 function renderTopDown() {
-  const W = tdCanvas.width;
-  const H = tdCanvas.height;
+  const W = tdCanvas.width, H = tdCanvas.height;
   tdCtx.clearRect(0, 0, W, H);
-  tdCtx.fillStyle = '#0a0d12';
-  tdCtx.fillRect(0, 0, W, H);
+  tdCtx.fillStyle = '#000'; tdCtx.fillRect(0, 0, W, H);
 
   const R    = Math.min(W / 4.5, H / 2 - 14);
   const cans = [{ cx: W * 0.27, cy: H / 2 }, { cx: W * 0.73, cy: H / 2 }];
 
-  cans.forEach((can, colIdx) => {
-    // Can shell
-    tdCtx.fillStyle = '#222';
-    tdCtx.beginPath();
-    tdCtx.arc(can.cx, can.cy, R, 0, Math.PI * 2);
-    tdCtx.fill();
-    tdCtx.strokeStyle = '#444';
-    tdCtx.lineWidth = 1;
-    tdCtx.beginPath();
-    tdCtx.arc(can.cx, can.cy, R, 0, Math.PI * 2);
-    tdCtx.stroke();
+  cans.forEach((can, col) => {
+    tdCtx.fillStyle = '#1a1a1a';
+    tdCtx.beginPath(); tdCtx.arc(can.cx, can.cy, R, 0, Math.PI * 2); tdCtx.fill();
+    tdCtx.strokeStyle = '#333'; tdCtx.lineWidth = 1;
+    tdCtx.beginPath(); tdCtx.arc(can.cx, can.cy, R, 0, Math.PI * 2); tdCtx.stroke();
 
-    // Each color as ring arc — offset by radial timing
     for (let chIdx = 0; chIdx < 5; chIdx++) {
       const ch  = S.ch[chIdx];
-      const [r,g,b] = INK[chIdx === 0 ? 'W' : CHANNEL_KEYS[chIdx]];
-      const radial  = colIdx === 0 ? ch.radialL : ch.radialR;
-      const xOff    = ch.globalX + radial;
-      const angOff  = (xOff / CAN_W) * Math.PI * 2;
-      const ringR   = R - 3 - chIdx * 5;
+      const [r,g,b] = INK[chIdx];
+      const rad = col === 0 ? ch.radialL : ch.radialR;
+      const xOff = ch.globalX + rad;
+      const angOff = (xOff / CAN_W) * Math.PI * 2;
+      const ringR  = R - 3 - chIdx * 4;
       if (ringR < 4) continue;
-
-      const startAng = -Math.PI / 2 + angOff;
-      const sweep    = Math.PI * 1.92; // ~96% coverage
 
       tdCtx.save();
       tdCtx.strokeStyle = `rgba(${r},${g},${b},0.8)`;
-      tdCtx.lineWidth   = chIdx === 0 ? 6 : 4;
+      tdCtx.lineWidth   = chIdx === 0 ? 5 : 3.5;
       tdCtx.beginPath();
-      tdCtx.arc(can.cx, can.cy, ringR, startAng, startAng + sweep);
+      tdCtx.arc(can.cx, can.cy, ringR, -Math.PI / 2 + angOff, -Math.PI / 2 + angOff + Math.PI * 1.92);
       tdCtx.stroke();
       tdCtx.restore();
     }
 
-    // Reference line (12 o'clock)
     tdCtx.save();
-    tdCtx.strokeStyle = 'rgba(255,255,255,0.12)';
-    tdCtx.lineWidth = 1;
-    tdCtx.setLineDash([2, 3]);
+    tdCtx.strokeStyle = 'rgba(255,255,255,0.1)';
+    tdCtx.lineWidth = 1; tdCtx.setLineDash([2,3]);
     tdCtx.beginPath();
-    tdCtx.moveTo(can.cx, can.cy - R + 2);
-    tdCtx.lineTo(can.cx, can.cy - 3);
-    tdCtx.stroke();
-    tdCtx.restore();
+    tdCtx.moveTo(can.cx, can.cy - R + 2); tdCtx.lineTo(can.cx, can.cy - 4);
+    tdCtx.stroke(); tdCtx.restore();
 
-    // Label
-    tdCtx.font = '8px Courier New';
-    tdCtx.fillStyle = '#444';
-    tdCtx.textAlign = 'center';
-    tdCtx.fillText(`CAN ${colIdx + 1}`, can.cx, can.cy + R + 11);
+    tdCtx.font = '8px Arial'; tdCtx.fillStyle = '#333'; tdCtx.textAlign = 'center';
+    tdCtx.fillText(`CAN ${col + 1}`, can.cx, can.cy + R + 11);
   });
 
-  // Color legend (compact)
-  tdCtx.textAlign = 'left';
-  tdCtx.font = '8px Courier New';
-  CHANNEL_KEYS.forEach((key, i) => {
-    const [r,g,b] = INK[key];
-    tdCtx.fillStyle = i === 4 ? '#666' : `rgb(${r},${g},${b})`;
-    tdCtx.fillRect(4, 4 + i * 11, 7, 7);
-    tdCtx.fillStyle = '#444';
-    tdCtx.fillText(key, 13, 11 + i * 11);
+  tdCtx.textAlign = 'left'; tdCtx.font = '8px Arial';
+  CH_KEYS.forEach((k, i) => {
+    const [r,g,b] = INK[i];
+    tdCtx.fillStyle = `rgb(${r},${g},${b})`;
+    tdCtx.fillRect(3, 3 + i * 11, 7, 7);
+    tdCtx.fillStyle = '#333';
+    tdCtx.fillText(k, 12, 11 + i * 11);
   });
 }
 
-// ═══════════════════════════════════════════════════════════
-// QUALITY SCORE
-// ═══════════════════════════════════════════════════════════
-
+// ════════════════════════════════════════════════════════════
+// QUALITY
+// ════════════════════════════════════════════════════════════
 function calcQuality() {
   const scores = S.ch.map(ch => {
-    let err = 0;
-    err += Math.abs(ch.globalX) * 2.2;
-    err += Math.abs(ch.globalY) * 2.2;
-    err += Math.abs(ch.radialL) * 1.8;
-    err += Math.abs(ch.radialR) * 1.8;
-    err += Math.abs(ch.midLY)   / 120;
-    err += Math.abs(ch.midRY)   / 120;
+    let e = 0;
+    e += Math.abs(ch.globalX) * 2.2 + Math.abs(ch.globalY) * 2.2;
+    e += Math.abs(ch.radialL) * 1.8 + Math.abs(ch.radialR) * 1.8;
+    e += Math.abs(ch.midLY) / 120 + Math.abs(ch.midRY) / 120;
     ch.heads.forEach(h => {
-      err += Math.abs(h.delay)       * 0.6;
-      err += Math.abs(h.voltage - 100) * 0.35;
+      e += Math.abs(h.delay) * 0.6 + Math.abs(h.voltage - 100) * 0.35;
     });
-    return Math.max(0, Math.round(100 - err));
+    return Math.max(0, Math.round(100 - e));
   });
-  const overall = Math.round(scores.reduce((a, b) => a + b, 0) / scores.length);
-  return { overall, scores };
+  return { overall: Math.round(scores.reduce((a,b) => a+b,0) / scores.length), scores };
 }
 
 function scoreColor(s) {
@@ -1012,23 +958,19 @@ function updateQuality() {
   const q  = calcQuality();
   const el = document.getElementById('overall-score');
   el.textContent = `${q.overall}%`;
-  el.style.color       = scoreColor(q.overall);
+  el.style.color = scoreColor(q.overall);
   el.style.borderColor = scoreColor(q.overall);
 
-  const csel = document.getElementById('channel-scores');
-  csel.innerHTML = q.scores.map((s, i) =>
-    `<span class="cscore" style="color:${scoreColor(s)};border-color:${TAB_COLORS[i]};">${CHANNEL_KEYS[i]}:${s}%</span>`
-  ).join('');
+  document.getElementById('channel-scores').innerHTML = q.scores.map((s,i) => {
+    const st = STATIONS.find(x => x.chIdx === i);
+    return `<span class="cscore" style="color:${scoreColor(s)};border-color:${CH_CSS[i]};">${st ? st.num : CH_KEYS[i]}:${s}%</span>`;
+  }).join('');
 
   document.getElementById('status').textContent =
     q.overall >= 95 ? '✓ Excellent registration' :
     q.overall >= 80 ? '⚠ Minor misalignment — keep adjusting' :
-    '✗ Significant misalignment — check all channels';
+                      '✗ Significant misalignment — check all channels';
 }
-
-// ═══════════════════════════════════════════════════════════
-// RENDER ALL
-// ═══════════════════════════════════════════════════════════
 
 function renderAll() {
   renderUnrolled();
@@ -1037,129 +979,244 @@ function renderAll() {
   updateQuality();
 }
 
-// ═══════════════════════════════════════════════════════════
-// CONTROLS UI
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// STATION GRID — BUILD
+// ════════════════════════════════════════════════════════════
+function hex2rgb(hex) {
+  const r = parseInt(hex.slice(1,3),16), g = parseInt(hex.slice(3,5),16), b = parseInt(hex.slice(5,7),16);
+  return [r,g,b];
+}
 
-const BAR_CONTROLS = [
-  { id: 'globalX', label: 'Global X',     unit: ' px',  elId: 'c-globalX', valId: 'v-globalX' },
-  { id: 'globalY', label: 'Global Y',     unit: ' px',  elId: 'c-globalY', valId: 'v-globalY' },
-  { id: 'radialL', label: 'Radial Left',  unit: '',     elId: 'c-radialL', valId: 'v-radialL' },
-  { id: 'radialR', label: 'Radial Right', unit: '',     elId: 'c-radialR', valId: 'v-radialR' },
-  { id: 'midLY',   label: 'Mid-L Y',      unit: ' µm',  elId: 'c-midLY',   valId: 'v-midLY'   },
-  { id: 'midRY',   label: 'Mid-R Y',      unit: ' µm',  elId: 'c-midRY',   valId: 'v-midRY'   },
+function buildStationGrid() {
+  const grid = document.getElementById('station-grid-inner');
+  grid.innerHTML = '';
+
+  STATIONS.forEach((st, stIdx) => {
+    const div = document.createElement('div');
+    div.className = `st-icon ${st.type}`;
+    if (stIdx === S.selSt) div.classList.add('active');
+    div.dataset.stIdx = stIdx;
+
+    const col   = st.cssColor || '#555';
+    const chIdx = st.chIdx;
+
+    // Coverage %
+    const pctText = (chIdx >= 0 && S.ch[chIdx]) ? `${S.ch[chIdx].coverage}%` : '';
+    const nameText = st.name;
+
+    let bodyHTML = '';
+
+    if (st.type === 'all') {
+      // Striped body
+      const stripes = [
+        `rgb(${INK[0].slice(0,3).join(',')})`,
+        `rgb(${INK[1].slice(0,3).join(',')})`,
+        `rgb(${INK[2].slice(0,3).join(',')})`,
+        `rgb(${INK[3].slice(0,3).join(',')})`,
+        `rgb(${INK[4].slice(0,3).join(',')})`,
+      ];
+      bodyHTML = `
+        <div class="si-all-stripes">
+          ${stripes.map(c => `<div class="si-stripe" style="background:${c};opacity:0.7;"></div>`).join('')}
+        </div>
+        <div class="si-nozzles" style="border-color:#555;">
+          <div class="si-dot"></div><div class="si-dot"></div>
+        </div>`;
+    } else if (st.type === 'pinning' || st.type === 'uv') {
+      // Pinning / UV — dark icon, no hatch color
+      const uvColor = st.type === 'uv' ? '#6666aa' : '#555';
+      bodyHTML = `
+        <div class="si-cable"></div>
+        <div class="si-body" style="border-color:${uvColor};">
+          <div class="si-top-fill"></div>
+          <div class="si-hatch" style="background:repeating-linear-gradient(-45deg,transparent,transparent 3px,${uvColor}44 3px,${uvColor}44 6px);"></div>
+          <div class="si-bot-fill"></div>
+        </div>
+        <div class="si-nozzles" style="border-color:${uvColor};">
+          <div class="si-dot" style="background:#444;box-shadow:none;"></div>
+          <div class="si-dot" style="background:#444;box-shadow:none;"></div>
+        </div>`;
+    } else {
+      // Normal ink head
+      bodyHTML = `
+        <div class="si-cable"></div>
+        <div class="si-body" style="border-color:${col};">
+          <div class="si-top-fill"></div>
+          <div class="si-hatch" style="background:repeating-linear-gradient(-45deg,transparent,transparent 3px,${col}bb 3px,${col}bb 6px);"></div>
+          <div class="si-bot-fill"></div>
+        </div>
+        <div class="si-nozzles" style="border-color:${col};">
+          <div class="si-dot"></div><div class="si-dot"></div>
+        </div>`;
+    }
+
+    div.innerHTML = `
+      <div class="si-pct" style="color:${chIdx >= 0 ? col : '#444'};">${pctText}</div>
+      <div class="si-name" style="color:${chIdx >= 0 ? col : '#444'};">${nameText}</div>
+      ${bodyHTML}
+      <div class="si-num">${st.num !== null ? st.num : 'ALL'}</div>`;
+
+    if (st.type === 'ink' || st.type === 'all') {
+      div.addEventListener('click', () => selectStation(stIdx));
+    }
+    grid.appendChild(div);
+  });
+}
+
+function refreshStationPcts() {
+  document.querySelectorAll('.st-icon').forEach((el, i) => {
+    const st = STATIONS[i];
+    if (st.chIdx >= 0) {
+      const pctEl = el.querySelector('.si-pct');
+      if (pctEl) pctEl.textContent = `${S.ch[st.chIdx].coverage}%`;
+    }
+  });
+}
+
+// ════════════════════════════════════════════════════════════
+// STATION SELECT + CONTROLS
+// ════════════════════════════════════════════════════════════
+function selectStation(stIdx) {
+  S.selSt = stIdx;
+  S.selCh = STATIONS[stIdx].chIdx;
+
+  // Update active state
+  document.querySelectorAll('.st-icon').forEach((el, i) => {
+    el.classList.toggle('active', i === stIdx);
+  });
+
+  buildCtrlPanel();
+  renderAll();
+}
+
+const BAR_CTRLS = [
+  { id: 'globalX', label: 'Global X',     unit: ' px',  min: -30,  max: 30,  step: 0.5 },
+  { id: 'globalY', label: 'Global Y',     unit: ' px',  min: -20,  max: 20,  step: 0.5 },
+  { id: 'radialL', label: 'Radial Left',  unit: '',     min: -15,  max: 15,  step: 0.5 },
+  { id: 'radialR', label: 'Radial Right', unit: '',     min: -15,  max: 15,  step: 0.5 },
+  { id: 'midLY',   label: 'Mid-L Y',      unit: ' µm',  min: -500, max: 500, step: 5   },
+  { id: 'midRY',   label: 'Mid-R Y',      unit: ' µm',  min: -500, max: 500, step: 5   },
 ];
 
-function buildTabs() {
-  const el = document.getElementById('color-tabs');
-  el.innerHTML = '';
-  CHANNEL_KEYS.forEach((key, i) => {
-    const btn = document.createElement('button');
-    btn.className = 'ctab' + (i === S.sel ? ' active' : '');
-    btn.textContent = key;
-    btn.style.borderColor = TAB_COLORS[i];
-    if (i === S.sel) btn.style.color = TAB_COLORS[i];
-    btn.onclick = () => { S.sel = i; buildTabs(); syncControls(); renderAll(); };
-    el.appendChild(btn);
-  });
-}
+const HEAD_LBLS = ['H1 T-L','H2 M-L','H3 B-L','H4 T-R','H5 M-R','H6 B-R'];
 
-const HEAD_LABELS = ['H1 T-L','H2 M-L','H3 B-L','H4 T-R','H5 M-R','H6 B-R'];
+function buildCtrlPanel() {
+  const st    = STATIONS[S.selSt];
+  const chIdx = S.selCh;
+  const title = document.getElementById('ctrl-station-title');
+  const body  = document.getElementById('ctrl-body');
 
-function buildHeadTable() {
-  const tbody = document.getElementById('htbody');
-  tbody.innerHTML = '';
-  const ch = S.ch[S.sel];
+  const col = st.cssColor || '#888';
+  title.textContent = `STATION ${st.num !== null ? st.num : 'ALL'} — ${st.name}`;
+  title.style.color = chIdx >= 0 ? col : '#555';
 
-  ch.heads.forEach((head, i) => {
-    const isMid = i === 1 || i === 4;
-    const tr = document.createElement('tr');
-    if (isMid) tr.className = 'htab-mid';
+  if (chIdx === -2) {
+    // ALL view
+    body.innerHTML = `<div id="no-ctrl-msg">Showing all channels.<br>Select an individual station<br>to adjust its controls.</div>`;
+    return;
+  }
 
-    tr.innerHTML = `
-      <td><span class="hlabel${isMid ? ' mid' : ''}">${HEAD_LABELS[i]}</span></td>
-      <td>
-        <input type="range" min="-20" max="20" step="1" value="${head.delay}"
-               data-hi="${i}" data-p="delay">
-        <span class="hval" id="hv-delay-${i}">${fmtSigned(head.delay)}</span>
-      </td>
-      <td>
-        <input type="range" min="60" max="140" step="1" value="${head.voltage}"
-               data-hi="${i}" data-p="voltage">
-        <span class="hval" id="hv-volt-${i}">${head.voltage}</span>
-      </td>`;
-    tbody.appendChild(tr);
+  if (chIdx < 0) {
+    // Non-ink station
+    const desc = st.type === 'pinning' ? 'UV pinning station — cures ink between color passes. No alignment controls.' :
+                                          'UV coating station. No alignment controls.';
+    body.innerHTML = `<div id="no-ctrl-msg">${desc}</div>`;
+    return;
+  }
+
+  const ch = S.ch[chIdx];
+
+  // Build slider HTML
+  let html = `<div class="section-title">Bar Controls (all 6 heads)</div>`;
+  BAR_CTRLS.forEach(ctrl => {
+    html += `
+      <div class="srow">
+        <label>${ctrl.label}</label>
+        <input type="range" id="c-${ctrl.id}" min="${ctrl.min}" max="${ctrl.max}" step="${ctrl.step}" value="${ch[ctrl.id]}">
+        <span class="sval" id="v-${ctrl.id}">${ch[ctrl.id]}${ctrl.unit}</span>
+      </div>`;
   });
 
-  tbody.querySelectorAll('input[type=range]').forEach(inp => {
-    inp.addEventListener('input', () => {
-      const hi = +inp.dataset.hi;
-      const p  = inp.dataset.p;
-      const v  = parseFloat(inp.value);
-      S.ch[S.sel].heads[hi][p] = v;
-      document.getElementById(`hv-${p}-${hi}`).textContent =
-        p === 'delay' ? fmtSigned(v) : v;
-      renderAll();
-    });
-  });
-}
+  html += `<div class="section-title">Per-Head Fine Controls</div>
+    <table id="htable">
+      <thead><tr><th>Head</th><th>Delay µs</th><th>Volt %</th></tr></thead>
+      <tbody id="htbody"></tbody>
+    </table>
+    <div class="btn-row">
+      <button id="btn-rand">RANDOMIZE</button>
+      <button id="btn-reset">RESET CHAN</button>
+    </div>
+    <div class="btn-row">
+      <button id="btn-resetall">RESET ALL</button>
+      <button id="btn-ref">SHOW REF</button>
+    </div>`;
 
-function syncControls() {
-  const ch = S.ch[S.sel];
-  BAR_CONTROLS.forEach(ctrl => {
-    const inp = document.getElementById(ctrl.elId);
-    const val = document.getElementById(ctrl.valId);
-    inp.value = ch[ctrl.id];
-    val.textContent = ch[ctrl.id] + ctrl.unit;
-  });
-  buildHeadTable();
-}
+  body.innerHTML = html;
 
-function setupBarListeners() {
-  BAR_CONTROLS.forEach(ctrl => {
-    const inp = document.getElementById(ctrl.elId);
-    const val = document.getElementById(ctrl.valId);
+  // Wire bar sliders
+  BAR_CTRLS.forEach(ctrl => {
+    const inp = document.getElementById(`c-${ctrl.id}`);
+    const val = document.getElementById(`v-${ctrl.id}`);
     inp.addEventListener('input', () => {
       const v = parseFloat(inp.value);
-      S.ch[S.sel][ctrl.id] = v;
+      S.ch[chIdx][ctrl.id] = v;
       val.textContent = v + ctrl.unit;
       renderAll();
     });
   });
-}
 
-function setupButtons() {
+  // Build head table
+  const tbody = document.getElementById('htbody');
+  ch.heads.forEach((head, i) => {
+    const isMid = i === 1 || i === 4;
+    const tr = document.createElement('tr');
+    if (isMid) tr.className = 'htab-mid';
+    tr.innerHTML = `
+      <td><span class="hlbl${isMid ? ' mid' : ''}">${HEAD_LBLS[i]}</span></td>
+      <td>
+        <input type="range" min="-20" max="20" step="1" value="${head.delay}" data-hi="${i}" data-p="delay">
+        <span class="hval" id="hv-delay-${i}">${fmt(head.delay)}</span>
+      </td>
+      <td>
+        <input type="range" min="60" max="140" step="1" value="${head.voltage}" data-hi="${i}" data-p="voltage">
+        <span class="hval" id="hv-volt-${i}">${head.voltage}</span>
+      </td>`;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('input[type=range]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const hi = +inp.dataset.hi, p = inp.dataset.p, v = parseFloat(inp.value);
+      S.ch[chIdx].heads[hi][p] = v;
+      document.getElementById(`hv-${p}-${hi}`).textContent = p === 'delay' ? fmt(v) : v;
+      renderAll();
+    });
+  });
+
+  // Buttons
   document.getElementById('btn-rand').onclick = () => {
     function r(lo, hi) { return +((Math.random() * (hi - lo) + lo)).toFixed(1); }
-    S.ch.forEach(ch => {
-      ch.globalX = r(-22, 22);
-      ch.globalY = r(-14, 14);
-      ch.radialL = r(-12, 12);
-      ch.radialR = r(-12, 12);
-      ch.midLY   = Math.round(r(-350, 350) / 5) * 5;
-      ch.midRY   = Math.round(r(-350, 350) / 5) * 5;
-      ch.heads.forEach(h => {
-        h.delay   = Math.round(r(-14, 14));
-        h.voltage = Math.round(r(72, 128));
-      });
+    S.ch.forEach(c => {
+      c.globalX = r(-22,22); c.globalY = r(-14,14);
+      c.radialL = r(-12,12); c.radialR = r(-12,12);
+      c.midLY   = Math.round(r(-350,350)/5)*5;
+      c.midRY   = Math.round(r(-350,350)/5)*5;
+      c.heads.forEach(h => { h.delay = Math.round(r(-14,14)); h.voltage = Math.round(r(72,128)); });
     });
-    syncControls();
+    buildCtrlPanel();
     renderAll();
   };
-
   document.getElementById('btn-reset').onclick = () => {
-    S.ch[S.sel] = newChannel();
-    syncControls();
+    S.ch[chIdx] = newChannel(COVERAGE_DEFAULT[chIdx]);
+    buildCtrlPanel();
     renderAll();
   };
-
   document.getElementById('btn-resetall').onclick = () => {
-    S.ch = CHANNEL_KEYS.map(() => newChannel());
-    syncControls();
+    S.ch = CH_KEYS.map((_,i) => newChannel(COVERAGE_DEFAULT[i]));
+    buildCtrlPanel();
     renderAll();
   };
-
   const refBtn = document.getElementById('btn-ref');
+  refBtn.textContent = S.showRef ? 'HIDE REF' : 'SHOW REF';
   refBtn.onclick = () => {
     S.showRef = !S.showRef;
     refBtn.textContent = S.showRef ? 'HIDE REF' : 'SHOW REF';
@@ -1167,36 +1224,38 @@ function setupButtons() {
   };
 }
 
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
+// HELPERS
+// ════════════════════════════════════════════════════════════
+function fmt(v) { return (v > 0 ? '+' : '') + (Number.isInteger(v) ? v : v.toFixed(1)); }
+
+// ════════════════════════════════════════════════════════════
 // RESIZE
-// ═══════════════════════════════════════════════════════════
-
+// ════════════════════════════════════════════════════════════
 function resize() {
-  const viewPanel  = document.getElementById('view-panel');
-  const rightPanel = document.getElementById('right-panel');
+  const vp = document.getElementById('view-panel');
+  const rp = document.getElementById('right-panel');
 
-  uCanvas.width  = viewPanel.clientWidth;
-  uCanvas.height = viewPanel.clientHeight - 20; // minus plabel
+  uCanvas.width  = vp.clientWidth;
+  uCanvas.height = vp.clientHeight - 20;
 
-  hbCanvas.width  = rightPanel.clientWidth;
-  hbCanvas.height = Math.floor(rightPanel.clientHeight * 0.55) - 20;
-  tdCanvas.width  = rightPanel.clientWidth;
-  tdCanvas.height = Math.floor(rightPanel.clientHeight * 0.45) - 20;
+  hbCanvas.width  = rp.clientWidth;
+  hbCanvas.height = Math.floor(rp.clientHeight * 0.55) - 20;
+  tdCanvas.width  = rp.clientWidth;
+  tdCanvas.height = Math.floor(rp.clientHeight * 0.45) - 20;
 
   renderAll();
 }
 
-// ═══════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════
 // INIT
-// ═══════════════════════════════════════════════════════════
-
+// ════════════════════════════════════════════════════════════
 function init() {
-  buildTabs();
-  buildHeadTable();
-  setupBarListeners();
-  setupButtons();
+  buildStationGrid();
   window.addEventListener('resize', () => { clearTimeout(window._rsz); window._rsz = setTimeout(resize, 60); });
   resize();
+  // Auto-select station 5 (White) on load
+  selectStation(1);
 }
 
 window.addEventListener('load', init);
