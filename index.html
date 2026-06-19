@@ -212,7 +212,7 @@ header h1 {
   font-style: normal; font-size: 8px; color: #444;
 }
 .sr-ctrl {
-  width: 108px; flex-shrink: 0;
+  width: 130px; flex-shrink: 0;
   display: flex; align-items: center; justify-content: flex-end;
   padding: 5px 8px; gap: 4px;
 }
@@ -225,7 +225,7 @@ header h1 {
   padding: 3px 6px;
   font-size: 11px; font-weight: bold;
   color: var(--accent);
-  min-width: 62px; text-align: right;
+  min-width: 56px; text-align: right;
   font-family: 'Courier New', monospace;
 }
 .val-box.readonly {
@@ -234,37 +234,22 @@ header h1 {
 .val-box.unit {
   font-size: 9px; color: var(--dim);
   background: none; border: none;
-  padding: 3px 2px; min-width: auto;
+  padding: 3px 0; min-width: 20px;
 }
 
-/* Slider inside sr-ctrl */
-.sr-slider {
-  width: 60px; height: 4px;
-  -webkit-appearance: none;
-  background: var(--field-border);
-  border-radius: 2px; cursor: pointer; flex-shrink: 0;
-}
-.sr-slider::-webkit-slider-thumb {
-  -webkit-appearance: none;
-  width: 11px; height: 11px;
-  background: var(--accent); border-radius: 50%; cursor: pointer;
-}
-.sr-slider.global::-webkit-slider-thumb { background: #58a6ff; }
-
-/* Arrow buttons for incremental fields */
-.arrow-wrap {
+/* Arrow buttons */
+.arr-wrap {
   display: flex; flex-direction: column;
-  gap: 3px;
+  gap: 2px;
 }
 .arr-btn {
-  width: 22px; height: 14px;
+  width: 24px; height: 17px;
   background: #111; border: 1px solid #2a2a2a;
   color: var(--text); cursor: pointer;
-  font-size: 10px; border-radius: 2px;
+  font-size: 11px; border-radius: 2px;
   display: flex; align-items: center; justify-content: center;
   transition: background 0.1s, border-color 0.1s;
-  font-family: monospace; padding: 0;
-  line-height: 1;
+  font-family: monospace; padding: 0; line-height: 1;
 }
 .arr-btn:hover { background: #1c2a3a; border-color: var(--accent); }
 .arr-btn:active { background: #2a3a4a; }
@@ -924,20 +909,43 @@ function makeRow(num, labelHTML, ctrlHTML, classes=''){
   </div>`;
 }
 
-function makeSlider(id, min, max, step, val, cls=''){
-  return `<input type="range" class="sr-slider ${cls}" id="${id}" min="${min}" max="${max}" step="${step}" value="${val}">`;
+// ── Field definitions: step sizes and bounds per field ID ──
+const FIELD_DEF = {
+  globalAxial: { step:0.05, min:-15,  max:15,  fmt:v=>v.toFixed(2), unit:'mm'  },
+  axialShift:  { step:0.05, min:-10,  max:10,  fmt:v=>v.toFixed(2), unit:'mm'  },
+  radialL:     { step:0.05, min:-10,  max:10,  fmt:v=>v.toFixed(2), unit:'mm'  },
+  radialR:     { step:0.05, min:-10,  max:10,  fmt:v=>v.toFixed(2), unit:'mm'  },
+  midOffsetL:  { step:0.01, min:-3,   max:3,   fmt:v=>v.toFixed(2), unit:'mm'  },
+  midOffsetR:  { step:0.01, min:-3,   max:3,   fmt:v=>v.toFixed(2), unit:'mm'  },
+  piezoSetL:   { step:5,    min:-500, max:500, fmt:v=>Math.round(v).toString(), unit:'µm' },
+  piezoSetR:   { step:5,    min:-500, max:500, fmt:v=>Math.round(v).toString(), unit:'µm' },
+};
+
+function getFieldVal(fid) {
+  const ch = S.selCh >= 0 ? S.ch[S.selCh] : null;
+  if (fid === 'globalAxial') return S.globalAxial;
+  return ch ? ch[fid] : 0;
+}
+function setFieldVal(fid, v) {
+  const ch = S.selCh >= 0 ? S.ch[S.selCh] : null;
+  if (fid === 'globalAxial') { S.globalAxial = v; return; }
+  if (ch) ch[fid] = v;
 }
 
 function makeValBox(id, val, unit, readonly=false){
   return `<span class="val-box ${readonly?'readonly':''}" id="${id}">${val}</span><span class="val-box unit">${unit}</span>`;
 }
 
-function makeArrows(id, val){
-  return `<div class="arrow-wrap">
-    <button class="arr-btn" data-field="${id}" data-dir="1">&#9650;</button>
-    <button class="arr-btn" data-field="${id}" data-dir="-1">&#9660;</button>
+// Arrow field: ▲ [value] ▼ layout
+function makeArrField(fid, val, unit){
+  const def = FIELD_DEF[fid];
+  const disp = def.fmt(val);
+  return `<div class="arr-wrap">
+    <button class="arr-btn" data-fid="${fid}" data-dir="1">&#9650;</button>
+    <button class="arr-btn" data-fid="${fid}" data-dir="-1">&#9660;</button>
   </div>
-  ${makeValBox(id+'-display', fmtMM(val), 'mm')}`;
+  <span class="val-box" id="vb-${fid}">${disp}</span>
+  <span class="val-box unit">${unit}</span>`;
 }
 
 function fmtMM(v){ return v.toFixed(2); }
@@ -956,80 +964,71 @@ function buildRegPanel(){
   subtitleEl.textContent=`STATION ${st.num!==null?st.num:'ALL'} — ${st.name}`;
 
   if(chIdx===-2){
-    // ALL view
     body.innerHTML=`<div class="no-ctrl-msg">All channels displayed.<br>Field 2 (Axial All Colours) applies globally.<br><br>Select an individual station to adjust per-colour settings.</div>
     ${buildField2HTML()}
     ${buildToolBtns()}`;
-    wireField2();
-    wireToolBtns();
+    wireAllBtns();
     return;
   }
 
   if(chIdx<0){
-    const desc=st.type==='pinning'?'UV pinning station — cures ink between passes.\nNo alignment controls on this station.':
-                                    'UV coating station.\nNo alignment controls on this station.';
-    body.innerHTML=`<div class="no-ctrl-msg">${desc.replace('\n','<br>')}</div>`;
+    const desc=st.type==='pinning'?'UV pinning station — cures ink between passes.<br>No alignment controls on this station.':
+                                    'UV coating station.<br>No alignment controls on this station.';
+    body.innerHTML=`<div class="no-ctrl-msg">${desc}</div>`;
     return;
   }
 
   const ch=S.ch[chIdx];
 
   body.innerHTML=
-    buildField2HTML() +
+    buildField2HTML()+
     makeRow(3,
       `<strong>AXIAL SHIFT</strong><em>(+ = head / bottom)</em>`,
-      makeSlider('s-axial',-10,10,0.05,ch.axialShift)+makeValBox('v-axial',fmtMM(ch.axialShift),'mm')
+      makeArrField('axialShift', ch.axialShift, 'mm')
     )+
     makeRow(4,
       `<strong>RADIAL L SHIFT</strong><em>(+ = right) &nbsp; SPL</em>`,
-      makeSlider('s-radL',-10,10,0.05,ch.radialL)+makeValBox('v-radL',fmtMM(ch.radialL),'mm')
+      makeArrField('radialL', ch.radialL, 'mm')
     )+
     makeRow(5,
       `<strong>RADIAL R SHIFT</strong><em>(+ = right) &nbsp; SPR</em>`,
-      makeSlider('s-radR',-10,10,0.05,ch.radialR)+makeValBox('v-radR',fmtMM(ch.radialR),'mm')
+      makeArrField('radialR', ch.radialR, 'mm')
     )+
     makeRow(6,
       `<strong>MIDDLE OFFSET PRINT HEAD L</strong><em>(+ = right) &nbsp; SPL / P2 only</em>`,
-      makeArrows('midL',ch.midOffsetL)
+      makeArrField('midOffsetL', ch.midOffsetL, 'mm')
     )+
     makeRow(7,
       `<strong>MIDDLE OFFSET PRINT HEAD R</strong><em>(+ = right) &nbsp; SPR / P2 only</em>`,
-      makeArrows('midR',ch.midOffsetR)
+      makeArrField('midOffsetR', ch.midOffsetR, 'mm')
     )+
     makeRow(8,
       `<strong>CURRENT POSITION PIEZO</strong><em>MIDDLE PRINT HEAD L &nbsp; [read only]</em>`,
-      makeValBox('v-pCurrL',Math.round(ch.piezoCurrL),'µm',true),
+      makeValBox('v-pCurrL', Math.round(ch.piezoCurrL), 'µm', true),
       'display-row'
     )+
     makeRow(9,
       `<strong>SET POSITION PIEZO MIDDLE HEAD L</strong><em>(− = head / bottom)</em>`,
-      makeSlider('s-piezoL',-500,500,5,ch.piezoSetL)+makeValBox('v-piezoL',Math.round(ch.piezoSetL),'µm')
+      makeArrField('piezoSetL', ch.piezoSetL, 'µm')
     )+
     makeRow(10,
       `<strong>CURRENT POSITION PIEZO</strong><em>MIDDLE PRINT HEAD R &nbsp; [read only]</em>`,
-      makeValBox('v-pCurrR',Math.round(ch.piezoCurrR),'µm',true),
+      makeValBox('v-pCurrR', Math.round(ch.piezoCurrR), 'µm', true),
       'display-row'
     )+
     makeRow(11,
       `<strong>SET POSITION PIEZO MIDDLE HEAD R</strong><em>(− = head / bottom)</em>`,
-      makeSlider('s-piezoR',-500,500,5,ch.piezoSetR)+makeValBox('v-piezoR',Math.round(ch.piezoSetR),'µm')
+      makeArrField('piezoSetR', ch.piezoSetR, 'µm')
     )+
     buildToolBtns();
 
-  wireField2();
-  wireSlider('s-axial',  'v-axial',  v=>{ ch.axialShift=v; }, fmtMM, 'mm');
-  wireSlider('s-radL',   'v-radL',   v=>{ ch.radialL=v;    }, fmtMM, 'mm');
-  wireSlider('s-radR',   'v-radR',   v=>{ ch.radialR=v;    }, fmtMM, 'mm');
-  wireSlider('s-piezoL', 'v-piezoL', v=>{ ch.piezoSetL=v;  }, Math.round, 'µm');
-  wireSlider('s-piezoR', 'v-piezoR', v=>{ ch.piezoSetR=v;  }, Math.round, 'µm');
-  wireArrows(chIdx);
-  wireToolBtns();
+  wireAllBtns();
 }
 
 function buildField2HTML(){
   return makeRow(2,
     `<strong>AXIAL SHIFT ALL COLOURS</strong><em>(+ = head / bottom) &nbsp; GLOBAL</em>`,
-    makeSlider('s-globalAxial',-10,10,0.05,S.globalAxial,'global')+makeValBox('v-globalAxial',fmtMM(S.globalAxial),'mm'),
+    makeArrField('globalAxial', S.globalAxial, 'mm'),
     'global-row'
   );
 }
@@ -1045,50 +1044,25 @@ function buildToolBtns(){
   </div>`;
 }
 
-function wireField2(){
-  const inp=document.getElementById('s-globalAxial');
-  const val=document.getElementById('v-globalAxial');
-  if(!inp) return;
-  inp.addEventListener('input',()=>{
-    S.globalAxial=parseFloat(inp.value);
-    if(val) val.textContent=fmtMM(S.globalAxial);
-    // Sync globalAxial display on all pages (it's always field 2)
-    renderAll();
-  });
-}
-
-function wireSlider(slId, valId, setter, fmt2, unit){
-  const inp=document.getElementById(slId);
-  const val=document.getElementById(valId);
-  if(!inp) return;
-  inp.addEventListener('input',()=>{
-    const v=parseFloat(inp.value);
-    setter(v);
-    if(val) val.textContent=fmt2(v);
-    renderAll();
-  });
-}
-
-const MID_STEP=0.01; // mm per arrow click
-
-function wireArrows(chIdx){
+// Single handler for all arrow buttons
+function wireAllBtns(){
   document.querySelectorAll('.arr-btn').forEach(btn=>{
     btn.addEventListener('click',()=>{
-      const field=btn.dataset.field;
-      const dir=parseInt(btn.dataset.dir);
-      const ch=S.ch[chIdx];
-      if(field==='midL'){
-        ch.midOffsetL=parseFloat((ch.midOffsetL+dir*MID_STEP).toFixed(3));
-        const d=document.getElementById('midL-display');
-        if(d) d.textContent=fmtMM(ch.midOffsetL);
-      } else {
-        ch.midOffsetR=parseFloat((ch.midOffsetR+dir*MID_STEP).toFixed(3));
-        const d=document.getElementById('midR-display');
-        if(d) d.textContent=fmtMM(ch.midOffsetR);
-      }
+      const fid = btn.dataset.fid;
+      const dir = parseInt(btn.dataset.dir);
+      const def = FIELD_DEF[fid];
+      if(!def) return;
+      const cur = getFieldVal(fid);
+      const next = parseFloat(
+        Math.max(def.min, Math.min(def.max, cur + dir*def.step)).toFixed(4)
+      );
+      setFieldVal(fid, next);
+      const el = document.getElementById(`vb-${fid}`);
+      if(el) el.textContent = def.fmt(next);
       renderAll();
     });
   });
+  wireToolBtns();
 }
 
 function wireToolBtns(){
