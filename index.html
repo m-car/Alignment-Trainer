@@ -120,14 +120,6 @@ header h1 {
 .st-icon.pinning, .st-icon.uv { cursor: default; opacity: 0.6; }
 .st-icon.pinning:hover, .st-icon.uv:hover { background: none; }
 
-.si-pct {
-  font-size: 9px;
-  font-weight: bold;
-  color: #fff;
-  text-align: center;
-  line-height: 1.3;
-  min-height: 12px;
-}
 .si-name {
   font-size: 8px;
   text-align: center;
@@ -500,15 +492,12 @@ const INK = [
   [  0, 183, 235, 185],  // 4 C
 ];
 
-// Simulated ink coverage % for display (realistic looking defaults)
-const COVERAGE_DEFAULT = [31, 72, 86, 83, 84];
 
 // ════════════════════════════════════════════════════════════
 // STATE
 // ════════════════════════════════════════════════════════════
-function newChannel(coveragePct) {
+function newChannel() {
   return {
-    coverage: coveragePct,  // display only
     globalX:  0,
     globalY:  0,
     radialL:  0,
@@ -526,7 +515,7 @@ const S = {
   selSt:   -1,   // selected STATIONS[] index
   selCh:   -1,   // selected channel index (-1 if non-ink)
   showRef: false,
-  ch: CH_KEYS.map((_, i) => newChannel(COVERAGE_DEFAULT[i])),
+  ch: CH_KEYS.map(() => newChannel()),
 };
 
 // ════════════════════════════════════════════════════════════
@@ -1001,7 +990,7 @@ function buildStationGrid() {
     const chIdx = st.chIdx;
 
     // Coverage %
-    const pctText = (chIdx >= 0 && S.ch[chIdx]) ? `${S.ch[chIdx].coverage}%` : '';
+    const pctText = '';
     const nameText = st.name;
 
     let bodyHTML = '';
@@ -1051,7 +1040,6 @@ function buildStationGrid() {
     }
 
     div.innerHTML = `
-      <div class="si-pct" style="color:${chIdx >= 0 ? col : '#444'};">${pctText}</div>
       <div class="si-name" style="color:${chIdx >= 0 ? col : '#444'};">${nameText}</div>
       ${bodyHTML}
       <div class="si-num">${st.num !== null ? st.num : 'ALL'}</div>`;
@@ -1063,15 +1051,6 @@ function buildStationGrid() {
   });
 }
 
-function refreshStationPcts() {
-  document.querySelectorAll('.st-icon').forEach((el, i) => {
-    const st = STATIONS[i];
-    if (st.chIdx >= 0) {
-      const pctEl = el.querySelector('.si-pct');
-      if (pctEl) pctEl.textContent = `${S.ch[st.chIdx].coverage}%`;
-    }
-  });
-}
 
 // ════════════════════════════════════════════════════════════
 // STATION SELECT + CONTROLS
@@ -1206,12 +1185,12 @@ function buildCtrlPanel() {
     renderAll();
   };
   document.getElementById('btn-reset').onclick = () => {
-    S.ch[chIdx] = newChannel(COVERAGE_DEFAULT[chIdx]);
+    S.ch[chIdx] = newChannel();
     buildCtrlPanel();
     renderAll();
   };
   document.getElementById('btn-resetall').onclick = () => {
-    S.ch = CH_KEYS.map((_,i) => newChannel(COVERAGE_DEFAULT[i]));
+    S.ch = CH_KEYS.map(() => newChannel());
     buildCtrlPanel();
     renderAll();
   };
