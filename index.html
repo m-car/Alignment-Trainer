@@ -574,34 +574,30 @@ function drawGapOverlap(ctx, col) {
   }
 }
 
-// Draws registration text for one channel on one can column.
-// Text spans the full can height across all 3 heads.
-// Each channel is drawn with its own color using 'multiply' blend mode
-// so overlapping aligned layers darken toward black.
+// Draws a single large letter spanning all 3 heads for one channel/column.
+// Each channel uses its own ink color via multiply blend — aligned = black.
 function drawRegText(ctx, chIdx, col) {
   const ch = S.ch[chIdx];
-  const cx  = col === 0 ? L_CAN_X : R_CAN_X;
-  const radial   = col === 0 ? ch.radialL : ch.radialR;
-  const axialMM  = S.globalAxial + ch.axialShift;
+  const cx = col === 0 ? L_CAN_X : R_CAN_X;
+  const radial  = col === 0 ? ch.radialL : ch.radialR;
+  const axialMM = S.globalAxial + ch.axialShift;
+  // P2 also has its own piezo offset — include it by averaging the column shift
+  // (letter is tied to the column's base radial, not per-head)
   const dx = radial * MM_PX;
   const dy = axialMM * MM_PX;
 
-  // Use the midpoint of P2 (middle head) as the vertical anchor for text placement
-  const p2 = headParams(chIdx, col, 1); // P2 (idx=1)
-  const p3 = headParams(chIdx, col, 0); // P3 top
-  const p1 = headParams(chIdx, col, 2); // P1 bottom
-
-  // Text block spans P3 top to P1 bottom
-  const textTop    = p3.by;
-  const textBottom = p1.by + p1.bh;
-  const blockH     = textBottom - textTop;
-  const textCenterY = textTop + blockH / 2;
+  // Span from top of P3 to bottom of P1 (using zero-offset reference positions)
+  const refTop    = CAN_TOP_Y + headBaseY(0);       // P3 top
+  const refBottom = CAN_TOP_Y + headBaseY(2) + HEAD_PX_H; // P1 bottom
+  const blockH    = refBottom - refTop;
+  const centerX   = cx + CAN_W / 2 + dx;
+  const centerY   = refTop + blockH / 2 + dy;
 
   const [r,g,b] = INK[chIdx];
-  // Desaturate slightly for the text layer so colors are visible but not glaring
+  // White channel: render as dark grey so it's visible against the can
   const textColor = chIdx === 0
-    ? `rgba(180,180,180,0.85)`   // White → light grey so it's visible
-    : `rgba(${r},${g},${b},0.82)`;
+    ? `rgba(100,100,100,0.90)`
+    : `rgba(${r},${g},${b},0.88)`;
 
   ctx.save();
   ctx.beginPath();
@@ -611,20 +607,12 @@ function drawRegText(ctx, chIdx, col) {
   ctx.globalCompositeOperation = 'multiply';
   ctx.fillStyle = textColor;
 
-  // Font size scaled to fill roughly 1/3 of can height (one head zone)
-  const fontSize = Math.round(blockH * 0.28);
-  ctx.font = `bold ${fontSize}px 'Courier New', monospace`;
+  // Font sized to fill the full can height — letter nearly touches P3 top and P1 bottom
+  const fontSize = Math.round(blockH * 1.05);
+  ctx.font = `900 ${fontSize}px Arial Black, Arial, sans-serif`;
   ctx.textAlign = 'center';
   ctx.textBaseline = 'middle';
-
-  // Vertical positions: top third, center, bottom third
-  const lines = ['ALIGN', 'REG', '2025'];
-  const lineH = blockH / 3;
-  lines.forEach((line, li) => {
-    const lx = cx + CAN_W / 2 + dx;
-    const ly = textTop + lineH * li + lineH / 2 + dy;
-    ctx.fillText(line, lx, ly);
-  });
+  ctx.fillText('R', centerX, centerY);
 
   ctx.restore();
 }
