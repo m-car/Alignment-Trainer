@@ -1129,18 +1129,44 @@ function wireToolBtns(){
   const ref=document.getElementById('btn-ref');
 
   if(rand) rand.onclick=()=>{
-    function r(lo,hi,step=0.01){ return Math.round((Math.random()*(hi-lo)+lo)/step)*step; }
-    S.globalAxial=r(-4,4,0.05);
+    function r(lo,hi,step){ return Math.round((Math.random()*(hi-lo)+lo)/step)*step; }
+    // Ensure each value lands outside a ±dead zone so misalignment is always obvious
+    function rBiased(mag, step){
+      const sign = Math.random()<0.5 ? 1 : -1;
+      return Math.round((sign*(mag*0.4 + Math.random()*mag*0.6))/step)*step;
+    }
+    S.globalAxial = rBiased(8, 0.05);
     S.ch.forEach(ch=>{
-      ch.axialShift  = r(-3,3,0.05);
-      ch.radialL     = r(-5,5,0.05);
-      ch.radialR     = r(-5,5,0.05);
-      ch.midOffsetL  = r(-0.8,0.8,MID_STEP);
-      ch.midOffsetR  = r(-0.8,0.8,MID_STEP);
-      ch.piezoSetL   = r(-350,350,5);
-      ch.piezoSetR   = r(-350,350,5);
+      ch.axialShift  = rBiased(6,   0.05);
+      ch.radialL     = rBiased(7,   0.05);
+      ch.radialR     = rBiased(7,   0.05);
+      ch.midOffsetL  = rBiased(2,   MID_STEP);
+      ch.midOffsetR  = rBiased(2,   MID_STEP);
+      ch.piezoSetL   = rBiased(450, 5);
+      ch.piezoSetR   = rBiased(450, 5);
     });
-    buildRegPanel(); renderAll();
+    // Update value boxes in-place if a channel panel is open, else full rebuild
+    if(S.selCh >= 0){
+      const ch = S.ch[S.selCh];
+      const updates = {
+        globalAxial: S.globalAxial,
+        axialShift:  ch.axialShift,
+        radialL:     ch.radialL,
+        radialR:     ch.radialR,
+        midOffsetL:  ch.midOffsetL,
+        midOffsetR:  ch.midOffsetR,
+        piezoSetL:   ch.piezoSetL,
+        piezoSetR:   ch.piezoSetR,
+      };
+      Object.entries(updates).forEach(([fid, val])=>{
+        const el = document.getElementById(`vb-${fid}`);
+        const def = FIELD_DEF[fid];
+        if(el && def) el.textContent = def.fmt(val);
+      });
+    } else {
+      buildRegPanel();
+    }
+    renderAll();
   };
 
   if(reset && S.selCh>=0) reset.onclick=()=>{
