@@ -276,6 +276,8 @@ button.tool-btn:hover { border-color: var(--accent); color: var(--accent); }
 #btn-rand     { border-color: var(--warn) !important; color: var(--warn) !important; }
 #btn-reset    { border-color: var(--bad)  !important; color: var(--bad)  !important; }
 #btn-ref      { border-color: var(--good) !important; color: var(--good) !important; }
+#btn-text     { border-color: #a78bfa   !important; color: #a78bfa   !important; }
+#btn-text.active { background: #a78bfa !important; color: #000 !important; }
 
 /* ── CENTER VIEW ─────────────────── */
 #view-panel {
@@ -412,6 +414,7 @@ const S = {
   selSt:  -1,
   selCh:  -1,
   showRef: false,
+  showText: false,
   ch: CH_KEYS.map(() => newChannel()),
 };
 
@@ -516,7 +519,9 @@ function drawBand(ctx, chIdx, col, idx) {
   const p = headParams(chIdx, col, idx);
   const [r,g,b,ba] = INK[chIdx];
   const vs = Math.min(1.3, Math.max(0.5, 1.0));
-  const al = Math.min(1, (ba / 255) * vs);
+  const baseal = Math.min(1, (ba / 255) * vs);
+  // Dull to 25% opacity when registration text mode is active so text is the focus
+  const al = S.showText ? baseal * 0.25 : baseal;
 
   const cx = col === 0 ? L_CAN_X : R_CAN_X;
   ctx.save();
@@ -569,6 +574,61 @@ function drawGapOverlap(ctx, col) {
   }
 }
 
+// Draws registration text for one channel on one can column.
+// Text spans the full can height across all 3 heads.
+// Each channel is drawn with its own color using 'multiply' blend mode
+// so overlapping aligned layers darken toward black.
+function drawRegText(ctx, chIdx, col) {
+  const ch = S.ch[chIdx];
+  const cx  = col === 0 ? L_CAN_X : R_CAN_X;
+  const radial   = col === 0 ? ch.radialL : ch.radialR;
+  const axialMM  = S.globalAxial + ch.axialShift;
+  const dx = radial * MM_PX;
+  const dy = axialMM * MM_PX;
+
+  // Use the midpoint of P2 (middle head) as the vertical anchor for text placement
+  const p2 = headParams(chIdx, col, 1); // P2 (idx=1)
+  const p3 = headParams(chIdx, col, 0); // P3 top
+  const p1 = headParams(chIdx, col, 2); // P1 bottom
+
+  // Text block spans P3 top to P1 bottom
+  const textTop    = p3.by;
+  const textBottom = p1.by + p1.bh;
+  const blockH     = textBottom - textTop;
+  const textCenterY = textTop + blockH / 2;
+
+  const [r,g,b] = INK[chIdx];
+  // Desaturate slightly for the text layer so colors are visible but not glaring
+  const textColor = chIdx === 0
+    ? `rgba(180,180,180,0.85)`   // White → light grey so it's visible
+    : `rgba(${r},${g},${b},0.82)`;
+
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(cx, CAN_TOP_Y, CAN_W, CAN_H);
+  ctx.clip();
+
+  ctx.globalCompositeOperation = 'multiply';
+  ctx.fillStyle = textColor;
+
+  // Font size scaled to fill roughly 1/3 of can height (one head zone)
+  const fontSize = Math.round(blockH * 0.28);
+  ctx.font = `bold ${fontSize}px 'Courier New', monospace`;
+  ctx.textAlign = 'center';
+  ctx.textBaseline = 'middle';
+
+  // Vertical positions: top third, center, bottom third
+  const lines = ['ALIGN', 'REG', '2025'];
+  const lineH = blockH / 3;
+  lines.forEach((line, li) => {
+    const lx = cx + CAN_W / 2 + dx;
+    const ly = textTop + lineH * li + lineH / 2 + dy;
+    ctx.fillText(line, lx, ly);
+  });
+
+  ctx.restore();
+}
+
 function renderUnrolled() {
   const W = uCanvas.width, H = uCanvas.height;
   uCtx.clearRect(0,0,W,H);
@@ -609,6 +669,13 @@ function renderUnrolled() {
   for(let chIdx=0;chIdx<5;chIdx++)
     for(let col=0;col<2;col++)
       for(let i=0;i<3;i++) drawBand(uCtx,chIdx,col,i);
+
+  // Registration text overlay — each color layer multiplied so aligned = black
+  if (S.showText) {
+    for(let chIdx=0;chIdx<5;chIdx++)
+      for(let col=0;col<2;col++)
+        drawRegText(uCtx, chIdx, col);
+  }
 
   // Gap/overlap for selected channel
   for(let col=0;col<2;col++) drawGapOverlap(uCtx,col);
@@ -1041,6 +1108,9 @@ function buildToolBtns(){
   <div class="btn-row">
     <button class="tool-btn" id="btn-resetall">RESET ALL</button>
     <button class="tool-btn" id="btn-ref">SHOW REF</button>
+  </div>
+  <div class="btn-row">
+    <button class="tool-btn" id="btn-text">REG TEXT</button>
   </div>`;
 }
 
@@ -1102,6 +1172,18 @@ function wireToolBtns(){
     ref.onclick=()=>{
       S.showRef=!S.showRef;
       ref.textContent=S.showRef?'HIDE REF':'SHOW REF';
+      renderAll();
+    };
+  }
+
+  const txt=document.getElementById('btn-text');
+  if(txt){
+    txt.classList.toggle('active', S.showText);
+    txt.textContent=S.showText?'REG TEXT ✓':'REG TEXT';
+    txt.onclick=()=>{
+      S.showText=!S.showText;
+      txt.classList.toggle('active', S.showText);
+      txt.textContent=S.showText?'REG TEXT ✓':'REG TEXT';
       renderAll();
     };
   }
