@@ -1129,25 +1129,34 @@ function wireToolBtns(){
   const ref=document.getElementById('btn-ref');
 
   if(rand) rand.onclick=()=>{
-    // Each field gets an independent sign so colors scatter in different directions
-    function rSpread(mag, step){
-      const sign = Math.random() < 0.5 ? 1 : -1;
-      const frac = 0.45 + Math.random() * 0.55; // always at least 45% of max
-      return Math.round((sign * mag * frac) / step) * step;
-    }
-    // Keep globalAxial small — per-channel shifts provide the spread
-    S.globalAxial = rSpread(2, 0.05);
-    S.ch.forEach(ch => {
-      ch.axialShift = rSpread(8,   0.05);
-      ch.radialL    = rSpread(7,   0.05);
-      ch.radialR    = rSpread(7,   0.05);
-      ch.midOffsetL = rSpread(2,   MID_STEP);
-      ch.midOffsetR = rSpread(2,   MID_STEP);
-      ch.piezoSetL  = rSpread(450, 5);
-      ch.piezoSetR  = rSpread(450, 5);
+    function snap(v, step){ return Math.round(v / step) * step; }
+    function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+
+    // Zero out global so per-channel offsets are the only misalignment
+    S.globalAxial = 0;
+
+    // Distribute channels evenly around a random base angle so each colour
+    // is guaranteed to point in a clearly different direction.
+    // 5 channels, 72° apart (360/5), with a small per-channel jitter.
+    const baseAngle = Math.random() * Math.PI * 2;
+    const RADIAL_MAG = 5.5;  // mm — large enough to be very obvious
+    const AXIAL_MAG  = 5.0;  // mm
+
+    S.ch.forEach((ch, i) => {
+      const angle = baseAngle + (i / S.ch.length) * Math.PI * 2
+                  + (Math.random() - 0.5) * 0.4; // ±~12° jitter
+      const rMag = RADIAL_MAG * (0.75 + Math.random() * 0.25);
+      const aMag = AXIAL_MAG  * (0.75 + Math.random() * 0.25);
+
+      ch.radialL    = snap(clamp( Math.cos(angle) * rMag,          -9, 9),   0.05);
+      ch.radialR    = snap(clamp( Math.cos(angle) * rMag * (0.85 + Math.random()*0.3), -9, 9), 0.05);
+      ch.axialShift = snap(clamp( Math.sin(angle) * aMag,          -9, 9),   0.05);
+      ch.midOffsetL = snap(clamp((Math.random()-0.5) * 3,          -2, 2),   MID_STEP);
+      ch.midOffsetR = snap(clamp((Math.random()-0.5) * 3,          -2, 2),   MID_STEP);
+      ch.piezoSetL  = snap(clamp((Math.random()-0.5) * 800,      -500,500),  5);
+      ch.piezoSetR  = snap(clamp((Math.random()-0.5) * 800,      -500,500),  5);
     });
-    // Always rebuild the panel so displayed values match state,
-    // then defer the canvas render one frame so the DOM settles first
+
     buildRegPanel();
     requestAnimationFrame(renderAll);
   };
