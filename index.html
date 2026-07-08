@@ -582,32 +582,39 @@ function drawRegText(ctx, chIdx, col) {
   const cx  = col === 0 ? L_CAN_X : R_CAN_X;
   const radial  = col === 0 ? ch.radialL  : ch.radialR;
   const midOff  = col === 0 ? ch.midOffsetL : ch.midOffsetR;
-  const piezoPx = col === 0 ? ch.piezoCurrL : ch.piezoCurrR;
+  const piezoPx = (col === 0 ? ch.piezoCurrL : ch.piezoCurrR) / 100; // µm → px (vertical)
   const axialMM = S.globalAxial + ch.axialShift;
   const dy      = axialMM * MM_PX;
 
-  // Per-head horizontal offsets in pixels
-  const dxCol = radial * MM_PX;                          // P3 and P1
-  const dxP2  = (radial + midOff) * MM_PX + piezoPx / 100; // P2 independent
+  // Horizontal offsets — piezo does NOT affect X, only midOffset does
+  const dxCol = radial * MM_PX;                   // P3 and P1
+  const dxP2  = (radial + midOff) * MM_PX;        // P2 horizontal (midOffset only)
 
-  // Full letter geometry — same for all three strips so they align when dx matches
+  // Vertical offsets per head — P2 gets additional piezo shift
+  const dyCol = dy;            // P3 and P1
+  const dyP2  = dy + piezoPx; // P2 vertical includes piezo
+
   const refTop    = CAN_TOP_Y + headBaseY(0);
   const refBottom = CAN_TOP_Y + headBaseY(2) + HEAD_PX_H;
   const blockH    = refBottom - refTop;
   const fontSize  = Math.round(blockH * 1.05);
-  const centerY   = refTop + blockH / 2 + dy;
 
   const [r,g,b] = INK[chIdx];
   const textColor = chIdx === 0
     ? `rgba(100,100,100,0.90)`
     : `rgba(${r},${g},${b},0.88)`;
 
-  // Head index → dx for that strip
-  const dxForHead = [dxCol, dxP2, dxCol]; // P3, P2, P1
+  // Per-head dx and dy — P2 shifts independently on both axes
+  const headOffsets = [
+    { dx: dxCol, dy: dyCol },  // P3
+    { dx: dxP2,  dy: dyP2  },  // P2 — midOffset (X) + piezo (Y)
+    { dx: dxCol, dy: dyCol },  // P1
+  ];
 
-  dxForHead.forEach((dx, hi) => {
+  headOffsets.forEach(({ dx, dy: hdy }, hi) => {
     const stripTop = CAN_TOP_Y + headBaseY(hi);
     const stripBot = stripTop + HEAD_PX_H;
+    const centerY  = refTop + blockH / 2 + hdy;
 
     ctx.save();
     ctx.beginPath();
@@ -618,7 +625,6 @@ function drawRegText(ctx, chIdx, col) {
     ctx.font = `900 ${fontSize}px Arial Black, Arial, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-
     ctx.fillStyle = textColor;
     ctx.fillText('R', cx + CAN_W / 2 + dx, centerY);
 
