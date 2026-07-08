@@ -679,24 +679,58 @@ function drawRegText(ctx, chIdx, col) {
     { dx: dxCol, dy: dyCol },  // P1
   ];
 
-  headOffsets.forEach(({ dx, dy: hdy }, hi) => {
-    const stripTop = CAN_TOP_Y + headBaseY(hi);
-    const stripBot = stripTop + HEAD_PX_H;
-    const centerY  = refTop + blockH / 2 + hdy;
-
+  // Helper: draw the letter clipped to a single horizontal slice
+  const drawSlice = (dx, hdy, sliceTop, sliceBot) => {
+    if (sliceBot <= sliceTop) return;
+    const centerY = refTop + blockH / 2 + hdy;
     ctx.save();
     ctx.beginPath();
-    ctx.rect(cx, stripTop, CAN_W, stripBot - stripTop);
+    ctx.rect(cx, sliceTop, CAN_W, sliceBot - sliceTop);
     ctx.clip();
-
     ctx.globalCompositeOperation = 'multiply';
     ctx.font = `900 ${fontSize}px Arial Black, Arial, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = textColor;
     ctx.fillText('R', cx + CAN_W / 2 + dx, centerY);
-
     ctx.restore();
+  };
+
+  // Helper: draw letter in stripe-filtered rows within [yFrom, yTo]
+  // refBy shifts with the head so misalignment shows as phase drift
+  const drawStripedSlice = (dx, hdy, yFrom, yTo, refBy, phase) => {
+    const yEnd = Math.ceil(yTo);
+    for (let y = Math.floor(yFrom); y < yEnd; y += NOZZLE_STRIPE) {
+      const sp = ((Math.floor((y - refBy) / NOZZLE_STRIPE) % 2) + 2) % 2;
+      if (sp !== phase) continue;
+      drawSlice(dx, hdy, y, Math.min(yTo, y + NOZZLE_STRIPE));
+    }
+  };
+
+  headOffsets.forEach(({ dx, dy: hdy }, hi) => {
+    const stripTop = CAN_TOP_Y + headBaseY(hi);
+    const stripBot = stripTop + HEAD_PX_H;
+    const hasAbove = hi > 0;
+    const hasBelow = hi < 2;
+
+    // Seam boundary positions (fixed, independent of axial shift)
+    const topSeamBoundary = CAN_TOP_Y + headBaseY(hi);       // = stripTop
+    const botSeamBoundary = CAN_TOP_Y + headBaseY(hi + 1);   // = stripTop + NET_H
+
+    const solidTop = stripTop + (hasAbove ? OVERLAP_PX : 0);
+    const solidBot = stripBot - (hasBelow ? OVERLAP_PX : 0);
+
+    // Solid zone — clean flat clip, no stripes
+    drawSlice(dx, hdy, solidTop, solidBot);
+
+    // Top seam: this head is the BOTTOM of the pair → phase 1
+    // refBy anchored at seam boundary + this head's vertical offset
+    if (hasAbove)
+      drawStripedSlice(dx, hdy, stripTop, solidTop, topSeamBoundary + hdy, 1);
+
+    // Bottom seam: this head is the TOP of the pair → phase 0
+    if (hasBelow)
+      drawStripedSlice(dx, hdy, solidBot, stripBot, botSeamBoundary + hdy, 0);
   });
 }
 
