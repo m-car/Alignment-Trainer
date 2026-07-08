@@ -458,9 +458,9 @@ const OVERLAP_PX = 10;
 const NET_H      = HEAD_PX_H - OVERLAP_PX;   // 56
 const CAN_H      = NET_H * 2 + HEAD_PX_H;    // 178
 const CAN_W      = 268;
-const L_CAN_X    = 30;
-const R_CAN_X    = 338;
-const CAN_TOP_Y  = 44;
+const L_CAN_X    = 20;
+const R_CAN_X    = L_CAN_X + CAN_W + 30; // 30px gap between cans
+const CAN_TOP_Y  = 36;
 const MID_STAGGER_PX = 15;  // visual stagger in head bar view
 
 const HEAD_LABELS = ['P3','P2','P1'];  // index 0,1,2 → P3,P2,P1
@@ -655,8 +655,8 @@ function renderUnrolled() {
   uCtx.clearRect(0,0,W,H);
   uCtx.fillStyle='#000'; uCtx.fillRect(0,0,W,H);
 
-  const nW = R_CAN_X+CAN_W+52, nH = CAN_TOP_Y+CAN_H+36;
-  const sc = Math.min((W-8)/nW, (H-8)/nH, 1.4);
+  const nW = R_CAN_X+CAN_W+24, nH = CAN_TOP_Y+CAN_H+28;
+  const sc = Math.min((W-8)/nW, (H-8)/nH);
   uCtx.save(); uCtx.translate(4,4); uCtx.scale(sc,sc);
 
   uCtx.font='11px Arial'; uCtx.fillStyle='#333'; uCtx.textAlign='left';
@@ -1240,8 +1240,9 @@ function refreshRegDisplays(){
 function resize(){
   const vp=document.getElementById('view-panel');
   const rp=document.getElementById('right-panel');
+  const leg=document.getElementById('ch-legend');
   uCanvas.width=vp.clientWidth;
-  uCanvas.height=vp.clientHeight-20;
+  uCanvas.height=vp.clientHeight-(leg?leg.offsetHeight:0)-20;
   hbCanvas.width=rp.clientWidth;
   hbCanvas.height=Math.floor(rp.clientHeight*0.55)-20;
   tdCanvas.width=rp.clientWidth;
