@@ -279,6 +279,22 @@ button.tool-btn:hover { border-color: var(--accent); color: var(--accent); }
 #btn-text     { border-color: #a78bfa   !important; color: #a78bfa   !important; }
 #btn-text.active { background: #a78bfa !important; color: #000 !important; }
 
+/* ── CHANNEL LEGEND ──────────────────────────────────────── */
+#ch-legend {
+  display: flex; flex-wrap: wrap; gap: 6px;
+  padding: 6px 10px; background: #0a0a0a; flex-shrink: 0;
+}
+.ch-chip {
+  display: flex; align-items: center; gap: 5px;
+  padding: 3px 9px 3px 6px; border-radius: 3px;
+  border: 1px solid #444; cursor: pointer;
+  font: 11px 'Courier New', monospace; color: #ccc;
+  user-select: none; transition: opacity 0.1s, border-color 0.1s;
+}
+.ch-chip .swatch { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+.ch-chip.off { opacity: 0.28; border-color: #333; }
+.ch-chip:hover { border-color: #888; }
+
 /* ── CENTER VIEW ─────────────────── */
 #view-panel {
   flex: 1; background: #000;
@@ -343,6 +359,7 @@ footer {
   <div id="view-panel">
     <div class="plabel">UNROLLED CAN VIEW &mdash; ALIGNMENT TEST PATTERN</div>
     <canvas id="unrolled-canvas"></canvas>
+    <div id="ch-legend"></div>
   </div>
 
   <div id="right-panel">
@@ -415,6 +432,7 @@ const S = {
   selCh:  -1,
   showRef: false,
   showText: false,
+  chVisible: CH_KEYS.map(() => true), // per-channel visibility toggle
   ch: CH_KEYS.map(() => newChannel()),
 };
 
@@ -671,14 +689,16 @@ function renderUnrolled() {
   // Ink bands W→K→Y→M→C (hidden during registration text mode)
   if (!S.showText)
     for(let chIdx=0;chIdx<5;chIdx++)
-      for(let col=0;col<2;col++)
-        for(let i=0;i<3;i++) drawBand(uCtx,chIdx,col,i);
+      if(S.chVisible[chIdx])
+        for(let col=0;col<2;col++)
+          for(let i=0;i<3;i++) drawBand(uCtx,chIdx,col,i);
 
   // Registration text overlay — each color layer multiplied so aligned = black
   if (S.showText) {
     for(let chIdx=0;chIdx<5;chIdx++)
-      for(let col=0;col<2;col++)
-        drawRegText(uCtx, chIdx, col);
+      if(S.chVisible[chIdx])
+        for(let col=0;col<2;col++)
+          drawRegText(uCtx, chIdx, col);
   }
 
   // Gap/overlap for selected channel
@@ -718,15 +738,6 @@ function renderUnrolled() {
   uCtx.fillText('↕ blend', R_CAN_X+CAN_W+4, CAN_TOP_Y+NET_H+3);
   uCtx.fillText('↕ blend', R_CAN_X+CAN_W+4, CAN_TOP_Y+NET_H*2+3);
 
-  // Legend
-  const legY = CAN_TOP_Y+CAN_H+18;
-  CH_KEYS.forEach((k,i)=>{
-    const [r,g,b]=INK[i];
-    uCtx.fillStyle=`rgb(${r},${g},${b})`;
-    uCtx.fillRect(L_CAN_X+i*52,legY,9,9);
-    uCtx.fillStyle='#444'; uCtx.font='9px Arial'; uCtx.textAlign='left';
-    uCtx.fillText(CH_NAMES[i], L_CAN_X+i*52+12, legY+8);
-  });
 
   uCtx.restore();
 }
@@ -1186,6 +1197,8 @@ function wireToolBtns(){
   if(resetAll) resetAll.onclick=()=>{
     S.globalAxial=0;
     S.ch=CH_KEYS.map(()=>newChannel());
+    S.chVisible=CH_KEYS.map(()=>true);
+    buildChLegend();
     buildRegPanel(); renderAll();
   };
 
@@ -1239,8 +1252,28 @@ function resize(){
 // ════════════════════════════════════════════════════════════
 // INIT
 // ════════════════════════════════════════════════════════════
+function buildChLegend(){
+  const el = document.getElementById('ch-legend');
+  el.innerHTML = CH_NAMES.map((name, i) => {
+    const css = CH_CSS[i];
+    const off = S.chVisible[i] ? '' : ' off';
+    return `<div class="ch-chip${off}" data-chi="${i}">
+      <span class="swatch" style="background:${css};"></span>${name}
+    </div>`;
+  }).join('');
+  el.querySelectorAll('.ch-chip').forEach(chip => {
+    chip.addEventListener('click', () => {
+      const i = parseInt(chip.dataset.chi);
+      S.chVisible[i] = !S.chVisible[i];
+      chip.classList.toggle('off', !S.chVisible[i]);
+      renderAll();
+    });
+  });
+}
+
 function init(){
   buildStationGrid();
+  buildChLegend();
   window.addEventListener('resize',()=>{ clearTimeout(window._rsz); window._rsz=setTimeout(resize,60); });
   resize();
   requestAnimationFrame(tickPiezo);
