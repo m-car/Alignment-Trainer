@@ -574,45 +574,55 @@ function drawGapOverlap(ctx, col) {
 
 // Draws a single large letter spanning all 3 heads for one channel/column.
 // Each channel uses its own ink color via multiply blend — aligned = black.
+// Draw the registration letter in three independent strips — one per head.
+// P3 and P1 follow the column radial; P2 adds its own midOffset + piezo so
+// adjusting those controls visibly tears the middle section of the letter away.
 function drawRegText(ctx, chIdx, col) {
-  const ch = S.ch[chIdx];
-  const cx = col === 0 ? L_CAN_X : R_CAN_X;
-  const radial  = col === 0 ? ch.radialL : ch.radialR;
+  const ch  = S.ch[chIdx];
+  const cx  = col === 0 ? L_CAN_X : R_CAN_X;
+  const radial  = col === 0 ? ch.radialL  : ch.radialR;
+  const midOff  = col === 0 ? ch.midOffsetL : ch.midOffsetR;
+  const piezoPx = col === 0 ? ch.piezoCurrL : ch.piezoCurrR;
   const axialMM = S.globalAxial + ch.axialShift;
-  // P2 also has its own piezo offset — include it by averaging the column shift
-  // (letter is tied to the column's base radial, not per-head)
-  const dx = radial * MM_PX;
-  const dy = axialMM * MM_PX;
+  const dy      = axialMM * MM_PX;
 
-  // Span from top of P3 to bottom of P1 (using zero-offset reference positions)
-  const refTop    = CAN_TOP_Y + headBaseY(0);       // P3 top
-  const refBottom = CAN_TOP_Y + headBaseY(2) + HEAD_PX_H; // P1 bottom
+  // Per-head horizontal offsets in pixels
+  const dxCol = radial * MM_PX;                          // P3 and P1
+  const dxP2  = (radial + midOff) * MM_PX + piezoPx / 100; // P2 independent
+
+  // Full letter geometry — same for all three strips so they align when dx matches
+  const refTop    = CAN_TOP_Y + headBaseY(0);
+  const refBottom = CAN_TOP_Y + headBaseY(2) + HEAD_PX_H;
   const blockH    = refBottom - refTop;
-  const centerX   = cx + CAN_W / 2 + dx;
+  const fontSize  = Math.round(blockH * 1.05);
   const centerY   = refTop + blockH / 2 + dy;
 
   const [r,g,b] = INK[chIdx];
-  // White channel: render as dark grey so it's visible against the can
   const textColor = chIdx === 0
     ? `rgba(100,100,100,0.90)`
     : `rgba(${r},${g},${b},0.88)`;
 
-  ctx.save();
-  ctx.beginPath();
-  ctx.rect(cx, CAN_TOP_Y, CAN_W, CAN_H);
-  ctx.clip();
+  // Head index → dx for that strip
+  const dxForHead = [dxCol, dxP2, dxCol]; // P3, P2, P1
 
-  ctx.globalCompositeOperation = 'multiply';
-  ctx.fillStyle = textColor;
+  dxForHead.forEach((dx, hi) => {
+    const stripTop = CAN_TOP_Y + headBaseY(hi);
+    const stripBot = stripTop + HEAD_PX_H;
 
-  // Font sized to fill the full can height — letter nearly touches P3 top and P1 bottom
-  const fontSize = Math.round(blockH * 1.05);
-  ctx.font = `900 ${fontSize}px Arial Black, Arial, sans-serif`;
-  ctx.textAlign = 'center';
-  ctx.textBaseline = 'middle';
-  ctx.fillText('R', centerX, centerY);
+    ctx.save();
+    // Clip to this head's vertical strip AND the can bounds
+    ctx.beginPath();
+    ctx.rect(cx, stripTop, CAN_W, stripBot - stripTop);
+    ctx.clip();
 
-  ctx.restore();
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle = textColor;
+    ctx.font = `900 ${fontSize}px Arial Black, Arial, sans-serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('R', cx + CAN_W / 2 + dx, centerY);
+    ctx.restore();
+  });
 }
 
 function renderUnrolled() {
