@@ -619,16 +619,8 @@ function drawRegText(ctx, chIdx, col) {
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
 
-    // Filled layer — semi-transparent so misalignment shows as colour separation
     ctx.fillStyle = textColor;
     ctx.fillText('R', cx + CAN_W / 2 + dx, centerY);
-
-    // Outline layer — thin crisp edge makes even 1-2px shifts at strip
-    // boundaries immediately obvious as a stepped seam
-    ctx.globalCompositeOperation = 'source-over';
-    ctx.strokeStyle = textColor;
-    ctx.lineWidth = 1.5;
-    ctx.strokeText('R', cx + CAN_W / 2 + dx, centerY);
 
     ctx.restore();
   });
