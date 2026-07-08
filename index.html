@@ -610,17 +610,26 @@ function drawRegText(ctx, chIdx, col) {
     const stripBot = stripTop + HEAD_PX_H;
 
     ctx.save();
-    // Clip to this head's vertical strip AND the can bounds
     ctx.beginPath();
     ctx.rect(cx, stripTop, CAN_W, stripBot - stripTop);
     ctx.clip();
 
     ctx.globalCompositeOperation = 'multiply';
-    ctx.fillStyle = textColor;
     ctx.font = `900 ${fontSize}px Arial Black, Arial, sans-serif`;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
+
+    // Filled layer — semi-transparent so misalignment shows as colour separation
+    ctx.fillStyle = textColor;
     ctx.fillText('R', cx + CAN_W / 2 + dx, centerY);
+
+    // Outline layer — thin crisp edge makes even 1-2px shifts at strip
+    // boundaries immediately obvious as a stepped seam
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = textColor;
+    ctx.lineWidth = 1.5;
+    ctx.strokeText('R', cx + CAN_W / 2 + dx, centerY);
+
     ctx.restore();
   });
 }
@@ -979,8 +988,8 @@ const FIELD_DEF = {
   axialShift:  { step:0.25, min:-10,  max:10,  fmt:v=>v.toFixed(2), unit:'mm'  },
   radialL:     { step:0.25, min:-10,  max:10,  fmt:v=>v.toFixed(2), unit:'mm'  },
   radialR:     { step:0.25, min:-10,  max:10,  fmt:v=>v.toFixed(2), unit:'mm'  },
-  midOffsetL:  { step:0.10, min:-3,   max:3,   fmt:v=>v.toFixed(2), unit:'mm'  },
-  midOffsetR:  { step:0.10, min:-3,   max:3,   fmt:v=>v.toFixed(2), unit:'mm'  },
+  midOffsetL:  { step:0.25, min:-5,   max:5,   fmt:v=>v.toFixed(2), unit:'mm'  },
+  midOffsetR:  { step:0.25, min:-5,   max:5,   fmt:v=>v.toFixed(2), unit:'mm'  },
   piezoSetL:   { step:25,   min:-500, max:500, fmt:v=>Math.round(v).toString(), unit:'µm' },
   piezoSetR:   { step:25,   min:-500, max:500, fmt:v=>Math.round(v).toString(), unit:'µm' },
 };
@@ -1161,8 +1170,8 @@ function wireToolBtns(){
       ch.radialL    = snap(clamp( Math.cos(angle) * rMag,          -9, 9),   0.05);
       ch.radialR    = snap(clamp( Math.cos(angle) * rMag * (0.85 + Math.random()*0.3), -9, 9), 0.05);
       ch.axialShift = snap(clamp( Math.sin(angle) * aMag,          -9, 9),   0.05);
-      ch.midOffsetL = snap(clamp((Math.random()-0.5) * 3,          -2, 2),   0.01);
-      ch.midOffsetR = snap(clamp((Math.random()-0.5) * 3,          -2, 2),   0.01);
+      ch.midOffsetL = snap(clamp((Math.random()-0.5) * 8,          -5, 5),   0.25);
+      ch.midOffsetR = snap(clamp((Math.random()-0.5) * 8,          -5, 5),   0.25);
       ch.piezoSetL  = snap(clamp((Math.random()-0.5) * 800,      -500,500),  5);
       ch.piezoSetR  = snap(clamp((Math.random()-0.5) * 800,      -500,500),  5);
     });
