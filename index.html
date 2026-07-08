@@ -538,14 +538,17 @@ function drawCanBg(ctx, cx) {
 // At zero offset they fully interleave (smooth). When P2 shifts via
 // midOffset or piezo the phases slide apart: double-covered rows go dark,
 // uncovered rows go white — visible banding/dashing at the seam.
-const NOZZLE_STRIPE = 3;
+// NOZZLE_STRIPE=2 divides NET_H=56 into 28 stripes (even count), so with
+// opposite phases (top=0, bot=1) they perfectly interleave at zero offset.
+const NOZZLE_STRIPE = 2;
 
 function drawStripedZone(ctx, x, w, yFrom, yTo, refBy, phase) {
-  // Batch consecutive same-phase rows into single fillRect calls for performance
   let runStart = null;
   const yEnd = Math.ceil(yTo);
   for (let y = Math.floor(yFrom); y <= yEnd; y++) {
-    const inPhase = y < yTo && (Math.floor((y - refBy) / NOZZLE_STRIPE) % 2 === phase);
+    // Use ((n%2)+2)%2 to keep result positive even when (y-refBy) is negative
+    const stripePhase = ((Math.floor((y - refBy) / NOZZLE_STRIPE) % 2) + 2) % 2;
+    const inPhase = y < yTo && stripePhase === phase;
     if (inPhase && runStart === null) { runStart = y; }
     if (!inPhase && runStart !== null) {
       ctx.fillRect(x, runStart, w, y - runStart);
@@ -585,10 +588,6 @@ function drawBand(ctx, chIdx, col, idx) {
   const solidS = topOvlE, solidE = botOvlS;
   if (solidE > solidS) {
     ctx.fillRect(p.bx, solidS, p.bw, solidE - solidS);
-    ctx.fillStyle = 'rgba(0,0,0,0.05)';
-    for (let ly = solidS; ly < solidE; ly += 4)
-      ctx.fillRect(p.bx, ly, p.bw, 1.5);
-    ctx.fillStyle = `rgba(${r},${g},${b},${al})`;
   }
 
   // Top overlap — this head is the BOTTOM of the pair → phase 1
