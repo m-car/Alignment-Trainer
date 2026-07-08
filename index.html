@@ -965,14 +965,14 @@ function makeRow(num, labelHTML, ctrlHTML, classes=''){
 
 // ── Field definitions: step sizes and bounds per field ID ──
 const FIELD_DEF = {
-  globalAxial: { step:0.05, min:-15,  max:15,  fmt:v=>v.toFixed(2), unit:'mm'  },
-  axialShift:  { step:0.05, min:-10,  max:10,  fmt:v=>v.toFixed(2), unit:'mm'  },
-  radialL:     { step:0.05, min:-10,  max:10,  fmt:v=>v.toFixed(2), unit:'mm'  },
-  radialR:     { step:0.05, min:-10,  max:10,  fmt:v=>v.toFixed(2), unit:'mm'  },
-  midOffsetL:  { step:0.01, min:-3,   max:3,   fmt:v=>v.toFixed(2), unit:'mm'  },
-  midOffsetR:  { step:0.01, min:-3,   max:3,   fmt:v=>v.toFixed(2), unit:'mm'  },
-  piezoSetL:   { step:5,    min:-500, max:500, fmt:v=>Math.round(v).toString(), unit:'µm' },
-  piezoSetR:   { step:5,    min:-500, max:500, fmt:v=>Math.round(v).toString(), unit:'µm' },
+  globalAxial: { step:0.25, min:-15,  max:15,  fmt:v=>v.toFixed(2), unit:'mm'  },
+  axialShift:  { step:0.25, min:-10,  max:10,  fmt:v=>v.toFixed(2), unit:'mm'  },
+  radialL:     { step:0.25, min:-10,  max:10,  fmt:v=>v.toFixed(2), unit:'mm'  },
+  radialR:     { step:0.25, min:-10,  max:10,  fmt:v=>v.toFixed(2), unit:'mm'  },
+  midOffsetL:  { step:0.10, min:-3,   max:3,   fmt:v=>v.toFixed(2), unit:'mm'  },
+  midOffsetR:  { step:0.10, min:-3,   max:3,   fmt:v=>v.toFixed(2), unit:'mm'  },
+  piezoSetL:   { step:25,   min:-500, max:500, fmt:v=>Math.round(v).toString(), unit:'µm' },
+  piezoSetR:   { step:25,   min:-500, max:500, fmt:v=>Math.round(v).toString(), unit:'µm' },
 };
 
 function getFieldVal(fid) {
