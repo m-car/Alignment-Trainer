@@ -1344,7 +1344,7 @@ function buildChLegend(){
   el.innerHTML = CH_NAMES.map((name, i) => {
     const css = CH_CSS[i];
     const off = S.chVisible[i] ? '' : ' off';
-    return `<div class="ch-chip${off}" data-chi="${i}">
+    return `<div class="ch-chip${off}" data-chi="${i}" title="Click to show/hide ${name} on the canvas">
       <span class="swatch" style="background:${css};"></span>${name}
     </div>`;
   }).join('');
