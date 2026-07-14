@@ -882,6 +882,7 @@ function renderUnrolled() {
   const regC = ['rgba(210,210,210,0.85)','rgba(170,170,170,0.85)',
                  'rgba(255,215,0,0.85)','rgba(236,0,140,0.85)','rgba(0,183,235,0.85)'];
   for(let chIdx=0;chIdx<5;chIdx++){
+    if(!S.chVisible[chIdx]) continue;
     const ch=S.ch[chIdx];
     const radials = [ch.radialL, ch.radialR];
     cols.forEach(col=>{
