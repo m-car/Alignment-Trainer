@@ -296,6 +296,15 @@ button.tool-btn:hover { border-color: var(--accent); color: var(--accent); }
 .ch-chip.off { opacity: 0.28; border-color: #333; }
 .ch-chip:hover { border-color: #888; }
 
+/* ── FOCUS BUTTONS ───────────────── */
+.focus-btn {
+  padding: 2px 10px; background: #111; border: 1px solid #333;
+  color: #666; cursor: pointer; font-family: 'Courier New', monospace;
+  font-size: 10px; border-radius: 2px; transition: all 0.1s;
+}
+.focus-btn:hover { border-color: #666; color: #aaa; }
+.focus-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(88,166,255,0.08); }
+
 /* ── CENTER VIEW ─────────────────── */
 #view-panel {
   flex: 1; background: #000;
@@ -358,7 +367,14 @@ footer {
   </div>
 
   <div id="view-panel">
-    <div class="plabel">UNROLLED CAN VIEW &mdash; ALIGNMENT TEST PATTERN</div>
+    <div class="plabel" style="display:flex;align-items:center;justify-content:space-between;">
+      <span>UNROLLED CAN VIEW &mdash; ALIGNMENT TEST PATTERN</span>
+      <span id="focus-btns" style="display:flex;gap:4px;">
+        <button class="focus-btn active" data-side="-1">BOTH</button>
+        <button class="focus-btn" data-side="0">CAN1</button>
+        <button class="focus-btn" data-side="1">CAN2</button>
+      </span>
+    </div>
     <canvas id="unrolled-canvas"></canvas>
     <div id="ch-legend-wrap">
       <span id="ch-legend-hint">Click to show / hide ink channel</span>
@@ -436,6 +452,7 @@ const S = {
   selCh:  -1,
   showRef: false,
   showText: false,
+  focusSide: -1,   // -1=both, 0=CAN1 left, 1=CAN2 right
   chVisible: CH_KEYS.map(() => true), // per-channel visibility toggle
   ch: CH_KEYS.map(() => newChannel()),
 };
@@ -743,28 +760,43 @@ function renderUnrolled() {
   uCtx.clearRect(0,0,W,H);
   uCtx.fillStyle='#000'; uCtx.fillRect(0,0,W,H);
 
-  const nW = R_CAN_X+CAN_W+24, nH = CAN_TOP_Y+CAN_H+28;
-  const sc = Math.min((W-8)/nW, (H-8)/nH);
-  uCtx.save(); uCtx.translate(4,4); uCtx.scale(sc,sc);
+  let sc, tx, ty;
+  const focused = S.focusSide >= 0;
+  if (focused) {
+    const pad = 40;
+    const canX = S.focusSide === 0 ? L_CAN_X : R_CAN_X;
+    sc = Math.min((W - pad*2) / CAN_W, (H - pad*2) / CAN_H);
+    tx = pad - canX * sc;
+    ty = pad - CAN_TOP_Y * sc;
+  } else {
+    const nW = R_CAN_X+CAN_W+24, nH = CAN_TOP_Y+CAN_H+28;
+    sc = Math.min((W-8)/nW, (H-8)/nH);
+    tx = 4; ty = 4;
+  }
+  uCtx.save(); uCtx.translate(tx, ty); uCtx.scale(sc,sc);
 
-  uCtx.font='11px Arial'; uCtx.fillStyle='#333'; uCtx.textAlign='left';
-  uCtx.fillText('CAN 1 (SPL)', L_CAN_X+4, CAN_TOP_Y-8);
-  uCtx.fillText('CAN 2 (SPR)', R_CAN_X+4, CAN_TOP_Y-8);
+  const cols = focused ? [S.focusSide] : [0, 1];
 
-  drawCanBg(uCtx, L_CAN_X);
-  drawCanBg(uCtx, R_CAN_X);
+  const canXs = [L_CAN_X, R_CAN_X];
+  const canLabels = ['CAN 1 (SPL)', 'CAN 2 (SPR)'];
+
+  uCtx.font='11px Arial'; uCtx.fillStyle='#555'; uCtx.textAlign='left';
+  cols.forEach(col => uCtx.fillText(canLabels[col], canXs[col]+4, CAN_TOP_Y-8));
+
+  cols.forEach(col => drawCanBg(uCtx, canXs[col]));
 
   // Reference ghost
   if (S.showRef) {
     uCtx.save(); uCtx.setLineDash([4,4]);
     uCtx.strokeStyle='rgba(255,255,80,0.3)'; uCtx.lineWidth=1;
-    [L_CAN_X,R_CAN_X].forEach(cx=>{
-      for(let i=0;i<3;i++) uCtx.strokeRect(cx, CAN_TOP_Y+headBaseY(i), CAN_W, HEAD_PX_H);
+    cols.forEach(col=>{
+      for(let i=0;i<3;i++) uCtx.strokeRect(canXs[col], CAN_TOP_Y+headBaseY(i), CAN_W, HEAD_PX_H);
     }); uCtx.restore();
   }
 
   // Head boundary guides
-  [L_CAN_X,R_CAN_X].forEach(cx=>{
+  cols.forEach(col=>{
+    const cx = canXs[col];
     uCtx.save();
     uCtx.strokeStyle='rgba(120,120,120,0.15)'; uCtx.lineWidth=0.8; uCtx.setLineDash([3,5]);
     for(let i=1;i<3;i++){
@@ -778,53 +810,51 @@ function renderUnrolled() {
   if (!S.showText)
     for(let chIdx=0;chIdx<5;chIdx++)
       if(S.chVisible[chIdx])
-        for(let col=0;col<2;col++)
-          for(let i=0;i<3;i++) drawBand(uCtx,chIdx,col,i);
+        cols.forEach(col=>{ for(let i=0;i<3;i++) drawBand(uCtx,chIdx,col,i); });
 
   // Registration text overlay — each color layer multiplied so aligned = black
-  if (S.showText) {
+  if (S.showText)
     for(let chIdx=0;chIdx<5;chIdx++)
       if(S.chVisible[chIdx])
-        for(let col=0;col<2;col++)
-          drawRegText(uCtx, chIdx, col);
-  }
+        cols.forEach(col=> drawRegText(uCtx, chIdx, col));
 
   // Gap/overlap for selected channel
-  for(let col=0;col<2;col++) drawGapOverlap(uCtx,col);
+  cols.forEach(col=> drawGapOverlap(uCtx,col));
 
   // Registration crosshairs
-  const regPts = [
-    {lx:L_CAN_X+22,         ry:CAN_TOP_Y+22},
-    {lx:L_CAN_X+CAN_W-22,   ry:CAN_TOP_Y+22},
-    {lx:L_CAN_X+CAN_W/2,    ry:CAN_TOP_Y+CAN_H/2},
-    {lx:L_CAN_X+22,         ry:CAN_TOP_Y+CAN_H-22},
-    {lx:L_CAN_X+CAN_W-22,   ry:CAN_TOP_Y+CAN_H-22},
-  ];
   const regC = ['rgba(210,210,210,0.85)','rgba(170,170,170,0.85)',
                  'rgba(255,215,0,0.85)','rgba(236,0,140,0.85)','rgba(0,183,235,0.85)'];
   for(let chIdx=0;chIdx<5;chIdx++){
     const ch=S.ch[chIdx];
-    regPts.forEach(pt=>{
-      const xL=(ch.radialL)*MM_PX, yO=(S.globalAxial+ch.axialShift)*MM_PX;
-      uCtx.save(); uCtx.beginPath(); uCtx.rect(L_CAN_X,CAN_TOP_Y,CAN_W,CAN_H); uCtx.clip();
-      drawRegMark(uCtx, pt.lx+xL, pt.ry+yO, regC[chIdx]);
-      uCtx.restore();
-      const xR=(ch.radialR)*MM_PX;
-      const rx=pt.lx+(R_CAN_X-L_CAN_X);
-      uCtx.save(); uCtx.beginPath(); uCtx.rect(R_CAN_X,CAN_TOP_Y,CAN_W,CAN_H); uCtx.clip();
-      drawRegMark(uCtx, rx+xR, pt.ry+yO, regC[chIdx]);
-      uCtx.restore();
+    const radials = [ch.radialL, ch.radialR];
+    cols.forEach(col=>{
+      const cx = canXs[col];
+      const xOff = radials[col]*MM_PX, yOff=(S.globalAxial+ch.axialShift)*MM_PX;
+      const pts = [
+        {x:cx+22,       y:CAN_TOP_Y+22},
+        {x:cx+CAN_W-22, y:CAN_TOP_Y+22},
+        {x:cx+CAN_W/2,  y:CAN_TOP_Y+CAN_H/2},
+        {x:cx+22,       y:CAN_TOP_Y+CAN_H-22},
+        {x:cx+CAN_W-22, y:CAN_TOP_Y+CAN_H-22},
+      ];
+      pts.forEach(pt=>{
+        uCtx.save(); uCtx.beginPath(); uCtx.rect(cx,CAN_TOP_Y,CAN_W,CAN_H); uCtx.clip();
+        drawRegMark(uCtx, pt.x+xOff, pt.y+yOff, regC[chIdx]);
+        uCtx.restore();
+      });
     });
   }
 
-  // Head labels on right margin (P3 top → P1 bottom)
-  uCtx.font='9px Courier New'; uCtx.fillStyle='#333'; uCtx.textAlign='left';
+  // Head labels on right margin of rightmost visible can
+  const labelCol = cols[cols.length-1];
+  const labelX = canXs[labelCol]+CAN_W+4;
+  uCtx.font='9px Courier New'; uCtx.fillStyle='#555'; uCtx.textAlign='left';
   HEAD_LABELS.forEach((lbl,i)=>{
-    uCtx.fillText(lbl, R_CAN_X+CAN_W+4, CAN_TOP_Y+headBaseY(i)+HEAD_PX_H/2+3);
+    uCtx.fillText(lbl, labelX, CAN_TOP_Y+headBaseY(i)+HEAD_PX_H/2+3);
   });
   uCtx.fillStyle='#2a4a2a';
-  uCtx.fillText('↕ blend', R_CAN_X+CAN_W+4, CAN_TOP_Y+NET_H+3);
-  uCtx.fillText('↕ blend', R_CAN_X+CAN_W+4, CAN_TOP_Y+NET_H*2+3);
+  uCtx.fillText('↕ blend', labelX, CAN_TOP_Y+NET_H+3);
+  uCtx.fillText('↕ blend', labelX, CAN_TOP_Y+NET_H*2+3);
 
 
   uCtx.restore();
@@ -1362,9 +1392,20 @@ function buildChLegend(){
   });
 }
 
+function initFocusBtns() {
+  document.querySelectorAll('.focus-btn').forEach(btn => {
+    btn.addEventListener('click', () => {
+      S.focusSide = parseInt(btn.dataset.side);
+      document.querySelectorAll('.focus-btn').forEach(b => b.classList.toggle('active', b === btn));
+      renderAll();
+    });
+  });
+}
+
 function init(){
   buildStationGrid();
   buildChLegend();
+  initFocusBtns();
   window.addEventListener('resize',()=>{ clearTimeout(window._rsz); window._rsz=setTimeout(resize,60); });
   resize();
   requestAnimationFrame(tickPiezo);
