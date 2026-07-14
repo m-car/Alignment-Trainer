@@ -278,6 +278,14 @@ button.tool-btn:hover { border-color: var(--accent); color: var(--accent); }
 #btn-ref      { border-color: var(--good) !important; color: var(--good) !important; }
 #btn-text     { border-color: #a78bfa   !important; color: #a78bfa   !important; }
 #btn-text.active { background: #a78bfa !important; color: #000 !important; }
+.pat-row { display: flex; gap: 4px; padding: 0 10px 8px; }
+.pat-btn {
+  flex: 1; padding: 4px 2px; background: #060606; border: 1px solid #222;
+  color: #555; cursor: pointer; font-family: 'Courier New', monospace;
+  font-size: 10px; border-radius: 3px; transition: all 0.1s;
+}
+.pat-btn:hover { border-color: #a78bfa; color: #a78bfa; }
+.pat-btn.active { border-color: #a78bfa; color: #a78bfa; background: rgba(167,139,250,0.1); }
 
 /* ── CHANNEL LEGEND ──────────────────────────────────────── */
 #ch-legend-wrap { background: #0a0a0a; flex-shrink: 0; padding: 4px 10px 6px; }
@@ -453,6 +461,7 @@ const S = {
   showRef: false,
   showText: false,
   focusSide: -1,   // -1=both, 0=CAN1 left, 1=CAN2 right
+  pattern: 'letter', // reg text pattern: letter | grid | target | burst
   chVisible: CH_KEYS.map(() => true), // per-channel visibility toggle
   ch: CH_KEYS.map(() => newChannel()),
 };
@@ -689,9 +698,7 @@ function drawRegText(ctx, chIdx, col) {
   const fontSize  = Math.round(blockH * 1.05);
 
   const [r,g,b] = INK[chIdx];
-  const textColor = chIdx === 0
-    ? `rgba(100,100,100,0.90)`
-    : `rgba(${r},${g},${b},0.88)`;
+  const inkColor = chIdx === 0 ? `rgba(100,100,100,0.90)` : `rgba(${r},${g},${b},0.88)`;
 
   // Per-head dx and dy — P2 shifts independently on both axes
   const headOffsets = [
@@ -700,20 +707,70 @@ function drawRegText(ctx, chIdx, col) {
     { dx: dxCol, dy: dyCol },  // P1
   ];
 
-  // Helper: draw the letter clipped to a single horizontal slice
+  // Draw the selected pattern at the given per-head offset
+  function drawPatternAt(dx, hdy) {
+    const cxOff  = cx + CAN_W / 2 + dx;
+    const cyOff  = refTop + blockH / 2 + hdy;
+    ctx.globalCompositeOperation = 'multiply';
+    ctx.fillStyle   = inkColor;
+    ctx.strokeStyle = inkColor;
+    switch (S.pattern) {
+      case 'letter':
+        ctx.font = `900 ${fontSize}px Arial Black, Arial, sans-serif`;
+        ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+        ctx.fillText('R', cxOff, cyOff);
+        break;
+      case 'grid': {
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        const gsy = 10, gsx = 22;
+        for (let y = CAN_TOP_Y + hdy; y <= CAN_TOP_Y + CAN_H + hdy + gsy; y += gsy) {
+          ctx.moveTo(cx + dx, y); ctx.lineTo(cx + CAN_W + dx, y);
+        }
+        for (let x = 0; x <= CAN_W + gsx; x += gsx) {
+          ctx.moveTo(cx + x + dx, CAN_TOP_Y + hdy);
+          ctx.lineTo(cx + x + dx, CAN_TOP_Y + CAN_H + hdy);
+        }
+        ctx.stroke();
+        break;
+      }
+      case 'target': {
+        ctx.lineWidth = 2.5;
+        [14, 26, 40, 56].forEach(rad => {
+          ctx.beginPath(); ctx.arc(cxOff, cyOff, rad, 0, Math.PI*2); ctx.stroke();
+        });
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(cx + dx, cyOff);        ctx.lineTo(cx + CAN_W + dx, cyOff);
+        ctx.moveTo(cxOff, CAN_TOP_Y + hdy); ctx.lineTo(cxOff, CAN_TOP_Y + CAN_H + hdy);
+        ctx.stroke();
+        break;
+      }
+      case 'burst': {
+        ctx.lineWidth = 1.5;
+        const spokes = 18, inner = 10, outer = 75;
+        ctx.beginPath();
+        for (let i = 0; i < spokes; i++) {
+          const a = (i / spokes) * Math.PI * 2;
+          ctx.moveTo(cxOff + Math.cos(a)*inner, cyOff + Math.sin(a)*inner);
+          ctx.lineTo(cxOff + Math.cos(a)*outer, cyOff + Math.sin(a)*outer);
+        }
+        ctx.stroke();
+        // small filled center dot
+        ctx.beginPath(); ctx.arc(cxOff, cyOff, 5, 0, Math.PI*2); ctx.fill();
+        break;
+      }
+    }
+  }
+
+  // Helper: draw pattern clipped to a single horizontal slice
   const drawSlice = (dx, hdy, sliceTop, sliceBot) => {
     if (sliceBot <= sliceTop) return;
-    const centerY = refTop + blockH / 2 + hdy;
     ctx.save();
     ctx.beginPath();
     ctx.rect(cx, sliceTop, CAN_W, sliceBot - sliceTop);
     ctx.clip();
-    ctx.globalCompositeOperation = 'multiply';
-    ctx.font = `900 ${fontSize}px Arial Black, Arial, sans-serif`;
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = textColor;
-    ctx.fillText('R', cx + CAN_W / 2 + dx, centerY);
+    drawPatternAt(dx, hdy);
     ctx.restore();
   };
 
@@ -1244,6 +1301,12 @@ function buildToolBtns(){
   </div>
   <div class="btn-row">
     <button class="tool-btn" id="btn-text">REG TEXT</button>
+  </div>
+  <div class="pat-row">
+    <button class="pat-btn active" data-pat="letter">LETTER</button>
+    <button class="pat-btn" data-pat="grid">GRID</button>
+    <button class="pat-btn" data-pat="target">TARGET</button>
+    <button class="pat-btn" data-pat="burst">BURST</button>
   </div>`;
 }
 
@@ -1342,6 +1405,16 @@ function wireToolBtns(){
       renderAll();
     };
   }
+
+  document.querySelectorAll('.pat-btn').forEach(btn => {
+    btn.classList.toggle('active', btn.dataset.pat === S.pattern);
+    btn.onclick = () => {
+      S.pattern = btn.dataset.pat;
+      document.querySelectorAll('.pat-btn').forEach(b => b.classList.toggle('active', b === btn));
+      if (!S.showText) { S.showText = true; if(txt){ txt.classList.add('active'); txt.textContent='REG TEXT ✓'; } }
+      renderAll();
+    };
+  });
 }
 
 // Update read-only displays (piezo current positions)
