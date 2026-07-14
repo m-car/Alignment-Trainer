@@ -280,9 +280,10 @@ button.tool-btn:hover { border-color: var(--accent); color: var(--accent); }
 #btn-text.active { background: #a78bfa !important; color: #000 !important; }
 
 /* ── CHANNEL LEGEND ──────────────────────────────────────── */
+#ch-legend-wrap { background: #0a0a0a; flex-shrink: 0; padding: 4px 10px 6px; }
+#ch-legend-hint { display: block; font-size: 10px; color: var(--dim); margin-bottom: 4px; }
 #ch-legend {
   display: flex; flex-wrap: wrap; gap: 6px;
-  padding: 6px 10px; background: #0a0a0a; flex-shrink: 0;
 }
 .ch-chip {
   display: flex; align-items: center; gap: 5px;
@@ -359,7 +360,10 @@ footer {
   <div id="view-panel">
     <div class="plabel">UNROLLED CAN VIEW &mdash; ALIGNMENT TEST PATTERN</div>
     <canvas id="unrolled-canvas"></canvas>
-    <div id="ch-legend"></div>
+    <div id="ch-legend-wrap">
+      <span id="ch-legend-hint">Click to show / hide ink channel</span>
+      <div id="ch-legend"></div>
+    </div>
   </div>
 
   <div id="right-panel">
@@ -1326,7 +1330,7 @@ function refreshRegDisplays(){
 function resize(){
   const vp=document.getElementById('view-panel');
   const rp=document.getElementById('right-panel');
-  const leg=document.getElementById('ch-legend');
+  const leg=document.getElementById('ch-legend-wrap');
   uCanvas.width=vp.clientWidth;
   uCanvas.height=vp.clientHeight-(leg?leg.offsetHeight:0)-20;
   hbCanvas.width=rp.clientWidth;
