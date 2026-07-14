@@ -1255,6 +1255,8 @@ function wireToolBtns(){
     const AXIAL_MAG  = 5.0;  // mm
 
     S.ch.forEach((ch, i) => {
+      if (CH_KEYS[i] === 'K') return; // Black is the registration key — never randomized
+
       const angle = baseAngle + (i / S.ch.length) * Math.PI * 2
                   + (Math.random() - 0.5) * 0.4; // ±~12° jitter
       const rMag = RADIAL_MAG * (0.75 + Math.random() * 0.25);
