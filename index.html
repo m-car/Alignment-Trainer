@@ -2044,7 +2044,7 @@ function buildField2HTML(){
   return makeRow(2,
     `<strong>AXIAL SHIFT ALL COLOURS</strong><em>(+ = head / bottom) &nbsp; GLOBAL</em>`,
     makeArrField('globalAxial', S.globalAxial, 'mm'),
-    'global-row', '', 'axial'
+    'global-row', '', 'axialAll'
   );
 }
 
@@ -2659,6 +2659,8 @@ function injectHelpButtons() {
 
 // ── Per-field animated explainer ───────────────────────────────
 const FIELD_ANIM = {
+  axialAll: { title: 'Axial Shift All Colours',
+    cap: 'A <b>global</b> vertical trim — moves <b>every ink colour up or down together</b> at once, before you fine-tune any single channel.' },
   axial:  { title: 'Axial Shift',
     cap: 'Moves the whole colour <b>up or down</b> the can. The three printheads shift together — vertical registration.' },
   radial: { title: 'Radial Shift',
@@ -2686,10 +2688,32 @@ function drawFieldAnim(type, ms) {
   ctx.fillStyle = gg; ctx.fillRect(fx, fy, fw, fh);
   ctx.strokeStyle = '#2a2f36'; ctx.lineWidth = 1; ctx.strokeRect(fx, fy, fw, fh);
 
+  const A = 13, s = Math.sin(ms / 620);
+
+  // Global axial — all five ink colours as stacked stripes moving together
+  if (type === 'axialAll') {
+    const n = CH_CSS.length, gap = 3, sw = fw - 24, sx = fx + 12;
+    const bandH = (fh - 16) / n, sh = bandH - gap;
+    const dy = A * s;
+    for (let i = 0; i < n; i++) {
+      const y = fy + 8 + i * bandH;
+      ctx.save();
+      ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,255,255,0.28)'; ctx.lineWidth = 1;
+      ctx.strokeRect(sx, y, sw, sh);
+      ctx.restore();
+      ctx.globalAlpha = 0.9; ctx.fillStyle = CH_CSS[i];
+      ctx.fillRect(sx, y + dy, sw, sh);
+      ctx.globalAlpha = 1;
+    }
+    const cxa = W / 2, cya = H - 12;
+    ctx.strokeStyle = 'rgba(88,166,255,0.85)'; ctx.lineWidth = 2;
+    ctx.beginPath(); ctx.moveTo(cxa, cya - 7); ctx.lineTo(cxa, cya + 7); ctx.stroke();
+    return;
+  }
+
   const inkCss = (typeof S !== 'undefined' && S.selCh >= 0) ? CH_CSS[S.selCh] : '#58a6ff';
   const segH = fh / 3, mgap = 5, mh = segH - mgap * 2, mw = fw - 28;
   const baseX = fx + 14;
-  const A = 13, s = Math.sin(ms / 620);
 
   let dxAll = 0, dyAll = 0, dxMid = 0, dyMid = 0;
   if (type === 'axial')  dyAll = A * s;
