@@ -408,7 +408,7 @@ footer {
     <button class="hdr-pat-btn" data-pat="burst">BURST</button>
   </div>
   <div class="hdr-spacer"></div>
-  <span style="color:#777;font-size:10px;">SPL=CAN1 &nbsp; SPR=CAN2</span>
+  <span style="color:#777;font-size:10px;">SPL=LEFT CAN &nbsp; SPR=RIGHT CAN</span>
 </header>
 
 <div id="main">
@@ -437,8 +437,8 @@ footer {
         <button class="can-size-btn" data-size="16oz">16oz</button>
         <button class="can-size-btn" data-size="slk">SLK</button>
         <span style="width:1px;background:#333;height:14px;display:inline-block;margin:0 2px;"></span>
-        <button class="focus-btn active" data-side="0">CAN1</button>
-        <button class="focus-btn" data-side="1">CAN2</button>
+        <button class="focus-btn active" data-side="0">LEFT CAN</button>
+        <button class="focus-btn" data-side="1">RIGHT CAN</button>
         <button class="focus-btn" data-side="-1">BOTH</button>
         <span style="width:1px;background:#333;height:14px;display:inline-block;margin:0 2px;"></span>
         <button class="focus-btn active" id="btn-crop">CROP IDLE</button>
@@ -468,7 +468,7 @@ footer {
 </div>
 
 <footer>
-  <span>SPL: P4=bottom, P5=middle (piezo), P6=top &nbsp;|&nbsp; SPR: P1=bottom, P2=middle (piezo), P3=top &nbsp;|&nbsp; SPL=left mandrel &nbsp;|&nbsp; SPR=right mandrel</span>
+  <span>LEFT CAN (SPL): P4=bottom, P5=middle (piezo), P6=top &nbsp;|&nbsp; RIGHT CAN (SPR): P1=bottom, P2=middle (piezo), P3=top</span>
   <span id="status">Tap a printhead station to begin</span>
 </footer>
 
@@ -1054,7 +1054,7 @@ function renderUnrolled() {
   const cols = focused ? [S.focusSide] : [0, 1];
 
   const canXs = [L_CAN_X, R_CAN_X];
-  const canLabels = ['CAN 1 (SPL)', 'CAN 2 (SPR)'];
+  const canLabels = ['LEFT CAN (SPL)', 'RIGHT CAN (SPR)'];
 
   uCtx.font='11px Arial'; uCtx.fillStyle='#555'; uCtx.textAlign='left';
   cols.forEach(col => uCtx.fillText(canLabels[col], canXs[col]+4, CAN_TOP_Y-8));
@@ -1260,8 +1260,8 @@ function renderHeadBar() {
   hbCtx.strokeRect(sx-8, sy-6, totalW+16, rowGap*2+headH+10);
 
   hbCtx.font='9px Arial'; hbCtx.fillStyle='#333'; hbCtx.textAlign='center';
-  hbCtx.fillText('SPL / CAN 1', sx+headW/2, sy-11);
-  hbCtx.fillText('SPR / CAN 2', sx+headW+colGap+headW/2, sy-11);
+  hbCtx.fillText('SPL / LEFT CAN', sx+headW/2, sy-11);
+  hbCtx.fillText('SPR / RIGHT CAN', sx+headW+colGap+headW/2, sy-11);
 
   for(let col=0;col<2;col++){
     const colX=sx+col*(headW+colGap);
@@ -1362,7 +1362,7 @@ function renderTopDown() {
     tdCtx.stroke(); tdCtx.restore();
 
     tdCtx.font='8px Arial'; tdCtx.fillStyle='#333'; tdCtx.textAlign='center';
-    tdCtx.fillText(col===0?'CAN1/SPL':'CAN2/SPR', can.cx, can.cy+R+11);
+    tdCtx.fillText(col===0?'LEFT/SPL':'RIGHT/SPR', can.cx, can.cy+R+11);
   });
 
   tdCtx.textAlign='left'; tdCtx.font='8px Arial';
@@ -1444,7 +1444,7 @@ function renderSeamZoomTo(canvas, ctx) {
   const barW = W - lblW * 2;
 
   const chanName = S.selCh >= 0 ? CH_KEYS[S.selCh] : 'K';
-  const sideName = col === 0 ? 'CAN1' : 'CAN2';
+  const sideName = col === 0 ? 'LEFT CAN' : 'RIGHT CAN';
   ctx.fillStyle = '#555';
   ctx.font = '9px Courier New';
   ctx.textAlign = 'center';
@@ -1611,8 +1611,8 @@ function selectStation(stIdx){
 function makeRow(num, labelHTML, ctrlHTML, classes='', side=''){
   // side: 'L' = SPL/CAN1 only, 'R' = SPR/CAN2 only, '' = always active
   let muted = false;
-  if (side === 'L' && S.focusSide === 1) muted = true;
-  if (side === 'R' && S.focusSide === 0) muted = true;
+  if (side === 'R' && S.focusSide === 1) muted = true;
+  if (side === 'L' && S.focusSide === 0) muted = true;
   return `<div class="sr-row ${classes}${muted ? ' muted' : ''}">
     <div class="sr-num">${num}</div>
     <div class="sr-label">${labelHTML}</div>
