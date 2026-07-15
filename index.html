@@ -545,7 +545,8 @@ let loupePos    = null;   // {x,y} in uCanvas element px, or null
 let loupeActive = false;
 const LOUPE_R   = 130;    // loupe radius in screen px
 const LOUPE_Z   = 5;      // magnification factor
-let seamModalOpen = false;
+let seamModalOpen  = false;
+let loupeSnapCanvas = null; // offscreen snapshot taken before overlay is drawn
 
 // ════════════════════════════════════════════════════════════
 // CANVAS REFS
@@ -1135,8 +1136,16 @@ function renderUnrolled() {
 
   uCtx.restore();
 
-  // Inspection loupe overlay — drawn after main restore so it's in screen space
-  if (loupeActive && loupePos) drawLoupe(loupePos.x, loupePos.y);
+  // Inspection loupe overlay — snapshot the finished scene first, then overlay
+  if (loupeActive && loupePos) {
+    const W = uCanvas.width, H = uCanvas.height;
+    if (!loupeSnapCanvas || loupeSnapCanvas.width !== W || loupeSnapCanvas.height !== H) {
+      loupeSnapCanvas = document.createElement('canvas');
+      loupeSnapCanvas.width = W; loupeSnapCanvas.height = H;
+    }
+    loupeSnapCanvas.getContext('2d').drawImage(uCanvas, 0, 0);
+    drawLoupe(loupePos.x, loupePos.y);
+  }
 }
 
 // ────────────────────────────────────────────────────────────
@@ -1175,8 +1184,8 @@ function drawLoupe(mx, my) {
   uCtx.fillStyle = '#111';
   uCtx.fillRect(mx - R, my - R, R * 2, R * 2);
 
-  // Draw magnified snapshot — drawImage from same canvas uses pre-call snapshot
-  uCtx.drawImage(uCanvas,
+  // Draw magnified region from the pre-overlay snapshot (avoids reading our own shadow)
+  uCtx.drawImage(loupeSnapCanvas,
     Math.max(0, sx), Math.max(0, sy),
     Math.min(sw, W - Math.max(0, sx)), Math.min(sh, H - Math.max(0, sy)),
     mx - R + Math.max(0, -sx) * Z, my - R + Math.max(0, -sy) * Z,
