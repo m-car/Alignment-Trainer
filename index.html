@@ -1878,8 +1878,13 @@ function wireToolBtns(){
     ch.midOffsetR = snap(clamp((Math.random()-0.5) * 4,  -5, 5), 0.25);
     ch.piezoSetL  = snap(clamp((Math.random()-0.5) * 600,-500,500), 5);
     ch.piezoSetR  = snap(clamp((Math.random()-0.5) * 600,-500,500), 5);
-    // Select the affected channel so the reg panel shows it immediately
+    // Select the affected channel + isolate it (with K) so the drift is visible
+    S.selSt = STATIONS.findIndex(s => s.chIdx === i);
     S.selCh = i;
+    const kIdx = CH_KEYS.indexOf('K');
+    S.chVisible = CH_KEYS.map((_, ci) => ci === i || ci === kIdx);
+    document.querySelectorAll('.st-icon').forEach((el, si) => el.classList.toggle('active', si === S.selSt));
+    buildChLegend();
     buildRegPanel();
     requestAnimationFrame(renderAll);
   };
@@ -1903,6 +1908,9 @@ function wireToolBtns(){
       ch.piezoSetL  = snap(clamp((Math.random()-0.5) * 800,-500,500),    5);
       ch.piezoSetR  = snap(clamp((Math.random()-0.5) * 800,-500,500),    5);
     });
+    // Reveal every channel so the full misalignment is visible
+    S.chVisible = CH_KEYS.map(() => true);
+    buildChLegend();
     buildRegPanel();
     requestAnimationFrame(renderAll);
   };
