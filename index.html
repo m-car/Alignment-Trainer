@@ -391,6 +391,71 @@ footer {
 }
 .modal-close-btn:hover { border-color: var(--bad); color: var(--bad); }
 
+/* ── WELCOME OVERLAY ─────────────── */
+#welcome-overlay {
+  position: fixed; inset: 0;
+  background: rgba(0,0,0,0.48);
+  z-index: 1500;
+  opacity: 0;
+  animation: welcome-fadein 0.6s ease 0.3s forwards;
+  pointer-events: all;
+}
+@keyframes welcome-fadein {
+  to { opacity: 1; }
+}
+#welcome-card {
+  position: fixed;
+  width: 280px;
+  background: #0e1117;
+  border: 1px solid rgba(88,166,255,0.35);
+  border-radius: 6px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.85);
+  padding: 18px 20px 16px;
+  pointer-events: all;
+  /* positioned by JS */
+}
+#welcome-caret {
+  position: fixed;
+  width: 0; height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-bottom: 9px solid rgba(88,166,255,0.35);
+  /* positioned by JS */
+}
+#welcome-caret::after {
+  content: '';
+  position: absolute;
+  top: 2px; left: -7px;
+  width: 0; height: 0;
+  border-left: 7px solid transparent;
+  border-right: 7px solid transparent;
+  border-bottom: 8px solid #0e1117;
+}
+#welcome-title {
+  font-size: 13px; font-weight: bold; color: #e8e8e8;
+  font-family: 'Courier New', monospace; margin-bottom: 8px;
+}
+#welcome-body {
+  font-size: 11px; color: #888; line-height: 1.6;
+  font-family: Arial, sans-serif; margin-bottom: 16px;
+}
+#welcome-actions { display: flex; align-items: center; gap: 10px; }
+#welcome-start {
+  flex: 1; padding: 7px 0;
+  background: var(--accent); border: none; border-radius: 3px;
+  color: #000; font-family: 'Courier New', monospace;
+  font-size: 11px; font-weight: bold; cursor: pointer;
+  letter-spacing: 0.5px; transition: background 0.12s;
+}
+#welcome-start:hover { background: #79baff; }
+#welcome-skip {
+  font-size: 10px; color: #444; cursor: pointer;
+  font-family: 'Courier New', monospace; letter-spacing: 0.5px;
+  border: none; background: none; padding: 4px;
+  transition: color 0.12s;
+}
+#welcome-skip:hover { color: #888; }
+
 /* ── TUTORIAL BUTTON ─────────────── */
 #btn-tutorial {
   position: absolute;
@@ -597,6 +662,19 @@ footer {
   <span>LEFT CAN (SPL): P4=bottom, P5=middle (piezo), P6=top &nbsp;|&nbsp; RIGHT CAN (SPR): P1=bottom, P2=middle (piezo), P3=top</span>
   <span id="status">Tap a printhead station to begin</span>
 </footer>
+
+<!-- ── WELCOME OVERLAY ────────────────────────────────────── -->
+<div id="welcome-overlay" style="display:none;">
+  <div id="welcome-caret"></div>
+  <div id="welcome-card">
+    <div id="welcome-title">New here?</div>
+    <div id="welcome-body">This trainer simulates a real Hinterkopf can press. The guided tutorial walks you through every control — from registration fields to the inspection loupe.</div>
+    <div id="welcome-actions">
+      <button id="welcome-start">▶ START TUTORIAL</button>
+      <button id="welcome-skip">Skip</button>
+    </div>
+  </div>
+</div>
 
 <!-- ── TUTORIAL OVERLAY ───────────────────────────────────── -->
 <div id="tut-overlay">
@@ -2395,9 +2473,60 @@ function tutEnd() {
   if (S.selCh >= 0) buildRegPanel();
 }
 
+function positionWelcomeCard() {
+  const btn    = document.getElementById('btn-tutorial');
+  const card   = document.getElementById('welcome-card');
+  const caret  = document.getElementById('welcome-caret');
+  if (!btn || !card) return;
+  const br   = btn.getBoundingClientRect();
+  const cw   = 280;
+  const gap  = 10;
+  const left = Math.round(br.left + br.width / 2 - cw / 2);
+  const top  = Math.round(br.bottom + gap + 9); // 9px for caret height
+  card.style.left = Math.max(8, left) + 'px';
+  card.style.top  = top + 'px';
+  // caret sits between button and card
+  caret.style.left = Math.round(br.left + br.width / 2 - 8) + 'px';
+  caret.style.top  = Math.round(br.bottom + gap) + 'px';
+}
+
+function showWelcomeOverlay() {
+  const el = document.getElementById('welcome-overlay');
+  el.style.display = 'block';
+  positionWelcomeCard();
+}
+
+function hideWelcomeOverlay() {
+  const el = document.getElementById('welcome-overlay');
+  el.style.opacity = '0';
+  el.style.transition = 'opacity 0.25s ease';
+  setTimeout(() => { el.style.display = 'none'; el.style.transition = ''; }, 260);
+}
+
 function initTutorial() {
+  const seen = localStorage.getItem('canworks_tut_seen');
+
+  // First-visit welcome overlay
+  if (!seen) {
+    showWelcomeOverlay();
+    document.getElementById('welcome-start').addEventListener('click', () => {
+      hideWelcomeOverlay();
+      tutStart();
+    });
+    document.getElementById('welcome-skip').addEventListener('click', () => {
+      hideWelcomeOverlay();
+      tutAcknowledge();
+    });
+    document.getElementById('welcome-overlay').addEventListener('click', e => {
+      if (e.target === document.getElementById('welcome-overlay')) {
+        hideWelcomeOverlay();
+        tutAcknowledge();
+      }
+    });
+  }
+
   // Pulse the button until acknowledged
-  if (!localStorage.getItem('canworks_tut_seen')) {
+  if (!seen) {
     document.getElementById('btn-tutorial').classList.add('pulsing');
   }
 
