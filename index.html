@@ -462,13 +462,13 @@ footer {
 </div>
 
 <footer>
-  <span>P1=bottom head &nbsp;|&nbsp; P2=middle head (staggered, piezo) &nbsp;|&nbsp; P3=top head &nbsp;|&nbsp; 12oz artwork: P1+lower P2 active &nbsp;|&nbsp; SPL=left mandrel &nbsp;|&nbsp; SPR=right mandrel</span>
+  <span>P4=bottom head &nbsp;|&nbsp; P5=middle head (staggered, piezo) &nbsp;|&nbsp; P6=top head &nbsp;|&nbsp; 12oz artwork: P4+lower P5 active &nbsp;|&nbsp; SPL=left mandrel &nbsp;|&nbsp; SPR=right mandrel</span>
   <span id="status">Tap a printhead station to begin</span>
 </footer>
 
 <div id="seam-modal">
   <div class="modal-hdr">
-    <span>SEAM ZOOM &mdash; P1/P2 NOZZLE INTERLEAVE</span>
+    <span>SEAM ZOOM &mdash; P4/P5 NOZZLE INTERLEAVE</span>
     <button class="modal-close-btn" id="btn-seam-close">✕ CLOSE</button>
   </div>
   <canvas id="seam-modal-canvas"></canvas>
@@ -606,7 +606,7 @@ let R_CAN_X      = L_CAN_X + CAN_W + 30;
 const CAN_TOP_Y  = 36;
 const MID_STAGGER_PX = 15;  // visual stagger in head bar view
 
-const HEAD_LABELS = ['P3','P2','P1'];  // index 0,1,2 → P3 (top), P2 (middle), P1 (bottom)
+const HEAD_LABELS = ['P6','P5','P4'];  // index 0,1,2 → P6 (top), P5 (middle), P4 (bottom)
 
 // ── ARTWORK ─────────────────────────────────────────────────
 // Pre-tinted offscreen canvases, one per ink channel (active format).
@@ -1440,7 +1440,7 @@ function renderSeamZoomTo(canvas, ctx) {
   ctx.fillStyle = '#555';
   ctx.font = '9px Courier New';
   ctx.textAlign = 'center';
-  ctx.fillText(`P1/P2 SEAM  ·  ${chanName} CHANNEL  ·  ${sideName}`, W / 2, TITLE_H - 4);
+  ctx.fillText(`P4/P5 SEAM  ·  ${chanName} CHANNEL  ·  ${sideName}`, W / 2, TITLE_H - 4);
 
   for (let ri = -SHOW; ri < SHOW; ri++) {
     const y     = nomSeamY + ri;
@@ -1484,11 +1484,11 @@ function renderSeamZoomTo(canvas, ctx) {
       ctx.font = `${fs} Courier New`;
       if (inP2 && !inP1) {
         ctx.fillStyle = '#3a6a9a'; ctx.textAlign = 'right';
-        ctx.fillText('P2', barX - 3, drawY + rowPx / 2 + 3);
+        ctx.fillText('P5', barX - 3, drawY + rowPx / 2 + 3);
       }
       if (inP1 && !inP2) {
         ctx.fillStyle = '#7a3a3a'; ctx.textAlign = 'left';
-        ctx.fillText('P1', barX + barW + 3, drawY + rowPx / 2 + 3);
+        ctx.fillText('P4', barX + barW + 3, drawY + rowPx / 2 + 3);
       }
       ctx.fillStyle = '#2e2e2e'; ctx.textAlign = 'right';
       ctx.fillText((ri >= 0 ? '+' : '') + ri, lblW - 5, drawY + rowPx / 2 + 3);
