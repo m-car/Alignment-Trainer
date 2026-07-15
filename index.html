@@ -708,8 +708,9 @@ function drawBand(ctx, chIdx, col, idx) {
     drawStripedZone(ctx, p.bx, p.bw, topOvlS, topOvlE, p.by, 1);
 
   // Bottom overlap — this head is the TOP of the pair → phase 0
+  // refBy = p.by + NET_H = seam boundary + this head's shift, matching the bottom head's p.by
   if (botOvlE > botOvlS)
-    drawStripedZone(ctx, p.bx, p.bw, botOvlS, botOvlE, p.by, 0);
+    drawStripedZone(ctx, p.bx, p.bw, botOvlS, botOvlE, p.by + NET_H, 0);
 
   ctx.restore();
 }
