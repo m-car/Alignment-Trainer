@@ -379,9 +379,10 @@ footer {
     <div class="plabel" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
       <span>UNROLLED CAN VIEW &mdash; ALIGNMENT TEST PATTERN</span>
       <span style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
-        <span style="color:#555;font-size:10px;letter-spacing:.05em;">CAN SIZE</span>
+        <span style="color:#555;font-size:10px;letter-spacing:.05em;">CAN FORMAT</span>
         <button class="can-size-btn active" data-size="12oz">12oz</button>
         <button class="can-size-btn" data-size="16oz">16oz</button>
+        <button class="can-size-btn" data-size="slk">SLK</button>
         <span style="width:1px;background:#333;height:14px;display:inline-block;margin:0 2px;"></span>
         <button class="focus-btn active" data-side="-1">BOTH</button>
         <button class="focus-btn" data-side="0">CAN1</button>
@@ -470,7 +471,7 @@ const S = {
   focusSide: -1,   // -1=both, 0=CAN1 left, 1=CAN2 right
   pattern: 'letter', // reg text pattern: letter | grid | target | burst
   chVisible: CH_KEYS.map(() => true), // per-channel visibility toggle
-  canSize: '12oz',   // '12oz' | '16oz' — controls active print zone height
+  canFormat: '12oz', // '12oz' | '16oz' | 'slk' — controls geometry + artwork
   cropIdle: false,   // when true, unrolled view hides idle nozzle zone above print area
   ch: CH_KEYS.map(() => newChannel()),
 };
@@ -498,26 +499,47 @@ const HEAD_PX_H  = 209;
 const OVERLAP_PX = 6;     // exaggerated from real ~0.36mm for visibility
 const NET_H      = HEAD_PX_H - OVERLAP_PX;   // 203
 const CAN_H      = NET_H * 2 + HEAD_PX_H;    // 615px — full 3-head stack (P3+P2+P1)
-// Artwork print heights per can size (source: 700dpi Colorgate separations)
-// 12oz: 3096px @ 700dpi = 112.3mm — P1 full + lower portion of P2
-// 16oz: placeholder — update PRINT_H_16OZ with real artwork height when available
-const PRINT_H_12OZ = Math.round(112.3 * MM_PX);  // 359px
-const PRINT_H_16OZ = Math.round(150.0 * MM_PX);  // 480px — placeholder, update with real value
-// Active values — updated by setCanSize()
-let PRINT_H        = PRINT_H_12OZ;
+
+// ── CAN FORMAT CONFIG ────────────────────────────────────────
+// All dimensions derived from Colorgate XML (diameter) + BMP size @ 700dpi
+const CAN_FORMATS = {
+  '12oz': {
+    label: '12oz',
+    canW:   Math.round(Math.PI * 66 * MM_PX),  // 664px  — π×66mm (diameter from XML)
+    printH: Math.round(3096 / 700 * 25.4 * MM_PX), // 359px — BMP height 3096px @ 700dpi
+    artwork: 'golden-mango',
+  },
+  '16oz': {
+    label: '16oz',
+    canW:   Math.round(Math.PI * 66 * MM_PX),  // 664px  — same diameter as 12oz
+    printH: Math.round(4024 / 700 * 25.4 * MM_PX), // 467px — BMP height 4024px @ 700dpi
+    artwork: 'local-west-ipa',
+  },
+  'slk': {
+    label: 'SLK',
+    canW:   Math.round(Math.PI * 58 * MM_PX),  // 583px  — π×58mm (narrower sleek can)
+    printH: Math.round(4079 / 700 * 25.4 * MM_PX), // 474px — BMP height 4079px @ 700dpi
+    artwork: 'citrus-ginger',
+  },
+};
+
+// Active geometry — updated by setCanFormat()
+let CAN_W        = CAN_FORMATS['12oz'].canW;
+let PRINT_H      = CAN_FORMATS['12oz'].printH;
 let PRINT_OFFSET_Y = CAN_H - PRINT_H;
-const CAN_W      = 663;  // full can circumference: π×66mm × 3.2px/mm = 207.3mm × 3.2 ≈ 663px
 const L_CAN_X    = 20;
-const R_CAN_X    = L_CAN_X + CAN_W + 30; // 30px gap between cans
+let R_CAN_X      = L_CAN_X + CAN_W + 30;
 const CAN_TOP_Y  = 36;
 const MID_STAGGER_PX = 15;  // visual stagger in head bar view
 
 const HEAD_LABELS = ['P3','P2','P1'];  // index 0,1,2 → P3 (top), P2 (middle), P1 (bottom)
 
 // ── ARTWORK ─────────────────────────────────────────────────
-// Pre-tinted offscreen canvases, one per ink channel.
+// Pre-tinted offscreen canvases, one per ink channel (active format).
 // ink=dark in source PNG → mapped to ink color on white bg for multiply blend.
-const artworkChannels = new Array(5).fill(null);
+// artworkCache[folderName][chIdx] caches tinted canvases across format switches.
+const artworkCache   = {};
+let   artworkChannels = new Array(5).fill(null);
 
 function tintArtwork(img, r, g, b) {
   const off = document.createElement('canvas');
@@ -528,7 +550,7 @@ function tintArtwork(img, r, g, b) {
   const px = idata.data;
   for (let i = 0; i < px.length; i += 4) {
     const lum = (px[i] + px[i+1] + px[i+2]) / 3;
-    const ink = 1 - lum / 255; // 0=no ink (white), 1=full ink (black)
+    const ink = 1 - lum / 255;
     px[i]   = Math.round(255 - (255 - r) * ink);
     px[i+1] = Math.round(255 - (255 - g) * ink);
     px[i+2] = Math.round(255 - (255 - b) * ink);
@@ -538,25 +560,34 @@ function tintArtwork(img, r, g, b) {
   return off;
 }
 
-function loadArtwork() {
+function loadArtwork(folder) {
+  if (!artworkCache[folder]) artworkCache[folder] = new Array(5).fill(null);
+  artworkChannels = artworkCache[folder];
   const files = ['W','K','Y','M','C'];
   files.forEach((ch, i) => {
+    if (artworkChannels[i]) return; // already cached
     const img = new Image();
     img.onload = () => {
       const [r,g,b] = INK[i];
       artworkChannels[i] = tintArtwork(img, r, g, b);
+      artworkCache[folder][i] = artworkChannels[i];
       renderAll();
     };
-    img.src = `artwork/golden-mango/${ch}.png`;
+    img.src = `artwork/${folder}/${ch}.png`;
   });
 }
 
-function setCanSize(sz) {
-  S.canSize = sz;
-  PRINT_H        = sz === '16oz' ? PRINT_H_16OZ : PRINT_H_12OZ;
+function setCanFormat(key) {
+  const fmt = CAN_FORMATS[key];
+  if (!fmt) return;
+  S.canFormat = key;
+  CAN_W          = fmt.canW;
+  PRINT_H        = fmt.printH;
   PRINT_OFFSET_Y = CAN_H - PRINT_H;
+  R_CAN_X        = L_CAN_X + CAN_W + 30;
   document.querySelectorAll('.can-size-btn').forEach(b =>
-    b.classList.toggle('active', b.dataset.size === sz));
+    b.classList.toggle('active', b.dataset.size === key));
+  loadArtwork(fmt.artwork);
   renderAll();
 }
 // ─────────────────────────────────────────────────────────────
@@ -1599,9 +1630,9 @@ function initFocusBtns() {
     renderAll();
   });
 
-  // Can size selector
+  // Can format selector
   document.querySelectorAll('.can-size-btn').forEach(btn => {
-    btn.addEventListener('click', () => setCanSize(btn.dataset.size));
+    btn.addEventListener('click', () => setCanFormat(btn.dataset.size));
   });
 }
 
@@ -1609,7 +1640,7 @@ function init(){
   buildStationGrid();
   buildChLegend();
   initFocusBtns();
-  loadArtwork();
+  loadArtwork(CAN_FORMATS['12oz'].artwork);
   window.addEventListener('resize',()=>{ clearTimeout(window._rsz); window._rsz=setTimeout(resize,60); });
   resize();
   requestAnimationFrame(tickPiezo);
