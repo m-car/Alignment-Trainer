@@ -2426,11 +2426,11 @@ const TUTORIAL_STEPS = [
     title: 'Inspection Loupe',
     body: 'Toggle <strong style="color:#e0e0e0">LOUPE</strong>, then hover anywhere on the canvas for a live 5× magnifying view — like a physical inspection loupe.<br><br>Use it to examine the seam zone, artwork detail, or fine registration marks.',
   },
-  // 17 ── Head Bar
+  // 17 ── Glint
   {
-    getTarget: () => document.querySelector('#headbar-canvas'),
-    title: 'Printhead Bar',
-    body: 'Schematic of the three-head stack for the selected channel. Each head\'s position reflects the current radial shift and piezo offset.<br><br><strong style="color:#d29922">Yellow</strong> = gap between heads (missed rows). <strong style="color:#f85149">Red</strong> = overlap. The middle head (P5/P2) is highlighted in <strong style="color:#58a6ff">blue</strong>.',
+    getTarget: () => document.querySelector('#btn-glint'),
+    title: 'Metallic Glint',
+    body: 'Toggle <strong style="color:#e0e0e0">GLINT</strong> to sweep a soft specular sheen across the can, simulating the reflective aluminium surface under the press lighting.<br><br>Leave it on for realism, or switch it off for a static view during precise registration work.',
   },
   // 18 ── Top-Down
   {
