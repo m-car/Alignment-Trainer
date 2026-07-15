@@ -591,6 +591,55 @@ footer {
   height: 100%; background: var(--accent); border-radius: 1px;
   transition: width 0.35s ease;
 }
+
+/* ── SIMULATE-1-COLOR COACH ──────── */
+#sim-coach { display: none; position: fixed; inset: 0; z-index: 2000; pointer-events: none; }
+#sim-coach.active { display: block; }
+#sim-coach-backdrop { position: fixed; inset: 0; background: rgba(0,0,0,0.55); pointer-events: all; }
+#sim-coach-spot {
+  position: fixed; border-radius: 5px;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.55);
+  border: 2px solid var(--warn);
+  transition: top 0.3s cubic-bezier(.4,0,.2,1), left 0.3s cubic-bezier(.4,0,.2,1),
+              width 0.3s cubic-bezier(.4,0,.2,1), height 0.3s cubic-bezier(.4,0,.2,1);
+  pointer-events: none; z-index: 2001;
+}
+#sim-coach-card {
+  position: fixed; width: 320px; background: #0e1117;
+  border: 1px solid rgba(210,153,34,0.5); border-radius: 6px;
+  box-shadow: 0 8px 40px rgba(0,0,0,0.9);
+  padding: 16px 18px 14px; z-index: 2002; pointer-events: all;
+  transition: top 0.3s cubic-bezier(.4,0,.2,1), left 0.3s cubic-bezier(.4,0,.2,1);
+}
+#sim-coach-label {
+  font-size: 9px; letter-spacing: 2px; color: var(--warn);
+  font-family: 'Courier New', monospace; text-transform: uppercase; margin-bottom: 6px;
+}
+#sim-coach-title {
+  font-size: 14px; font-weight: bold; color: #e8e8e8;
+  font-family: 'Courier New', monospace; margin-bottom: 10px; line-height: 1.3;
+  display: flex; align-items: center; gap: 8px;
+}
+#sim-coach-swatch {
+  width: 14px; height: 14px; border-radius: 3px; flex-shrink: 0;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+#sim-coach-body { font-size: 12px; color: #a8a8a8; line-height: 1.6; font-family: Arial, sans-serif; margin-bottom: 14px; }
+#sim-coach-controls { display: flex; align-items: center; gap: 8px; }
+#sim-coach-progress { font-size: 10px; color: #555; font-family: 'Courier New', monospace; }
+#sim-coach-next {
+  margin-left: auto; padding: 5px 14px; border-radius: 3px; cursor: pointer;
+  font-family: 'Courier New', monospace; font-size: 11px; font-weight: bold;
+  background: var(--warn); border: 1px solid var(--warn); color: #000; transition: all 0.12s;
+}
+#sim-coach-next:hover { background: #e5b23a; border-color: #e5b23a; }
+
+/* Channel-colour flash pulse used on the spotlighted station icon / chip */
+@keyframes ch-flash {
+  0%, 100% { box-shadow: 0 0 0 0 transparent; }
+  50%      { box-shadow: 0 0 0 3px var(--flash-col), 0 0 16px 3px var(--flash-col); }
+}
+.ch-flash { animation: ch-flash 0.6s ease-in-out 3; border-radius: 4px; }
 </style>
 </head>
 <body>
@@ -693,6 +742,21 @@ footer {
 
 <!-- ── HELP DESCRIPTION POPOVER ────────────────────────────── -->
 <div id="help-pop"></div>
+
+<!-- ── SIMULATE-1-COLOR COACH ──────────────────────────────── -->
+<div id="sim-coach">
+  <div id="sim-coach-backdrop"></div>
+  <div id="sim-coach-spot"></div>
+  <div id="sim-coach-card">
+    <div id="sim-coach-label">MISALIGNMENT SIMULATED</div>
+    <div id="sim-coach-title"><span id="sim-coach-swatch"></span><span id="sim-coach-title-text"></span></div>
+    <div id="sim-coach-body"></div>
+    <div id="sim-coach-controls">
+      <span id="sim-coach-progress">1 / 2</span>
+      <button id="sim-coach-next">NEXT ▶</button>
+    </div>
+  </div>
+</div>
 
 <!-- ── TUTORIAL OVERLAY ───────────────────────────────────── -->
 <div id="tut-overlay">
@@ -1900,7 +1964,11 @@ function wireToolBtns(){
   function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
 
   if(rand1) rand1.onclick=()=>{
-    // Pick one non-K channel at random
+    // Reset every channel to perfect alignment first, so only one drift remains
+    S.globalAxial = 0;
+    S.ch = CH_KEYS.map(() => newChannel());
+
+    // Pick one non-K channel at random and drift it
     const eligible = CH_KEYS.map((k,i)=>i).filter(i => CH_KEYS[i] !== 'K');
     const i = eligible[Math.floor(Math.random() * eligible.length)];
     const ch = S.ch[i];
@@ -1923,6 +1991,9 @@ function wireToolBtns(){
     buildChLegend();
     buildRegPanel();
     requestAnimationFrame(renderAll);
+
+    // Guided 2-step notification explaining what happened
+    runSimCoach(i);
   };
 
   if(randAll) randAll.onclick=()=>{
@@ -2120,6 +2191,7 @@ function init(){
 
   // ── Tutorial ─────────────────────────────────────────────────
   initTutorial();
+  initSimCoach();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -2438,6 +2510,104 @@ function injectHelpButtons() {
     hideHelpPop();
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') hideHelpPop(); });
+}
+
+// ── SIMULATE-1-COLOR guided coach ──────────────────────────────
+let simCoachStep = 0;
+let simCoachCh   = -1;
+
+function simCoachTarget(step) {
+  if (step === 0) {
+    const stIdx = STATIONS.findIndex(s => s.chIdx === simCoachCh);
+    return document.querySelectorAll('#station-grid-inner .st-icon')[stIdx]
+        || document.getElementById('station-grid');
+  }
+  return document.querySelector(`#ch-legend .ch-chip[data-chi="${simCoachCh}"]`)
+      || document.getElementById('ch-legend-wrap');
+}
+
+function simCoachSpotlight(el) {
+  const spot = document.getElementById('sim-coach-spot');
+  const pad = 6;
+  const r = el.getBoundingClientRect();
+  spot.style.top    = (r.top  - pad) + 'px';
+  spot.style.left   = (r.left - pad) + 'px';
+  spot.style.width  = (r.width  + pad*2) + 'px';
+  spot.style.height = (r.height + pad*2) + 'px';
+  // Flash the element in its own channel colour
+  el.style.setProperty('--flash-col', CH_CSS[simCoachCh]);
+  el.classList.remove('ch-flash');
+  void el.offsetWidth; // restart animation
+  el.classList.add('ch-flash');
+  setTimeout(() => el.classList.remove('ch-flash'), 1900);
+}
+
+function simCoachPositionCard(el) {
+  const card = document.getElementById('sim-coach-card');
+  const cw = card.offsetWidth || 320, ch = card.offsetHeight || 180;
+  const vw = window.innerWidth, vh = window.innerHeight, m = 16, pad = 12;
+  const r = el.getBoundingClientRect();
+  const cands = [
+    { top: r.bottom + pad, left: r.left },
+    { top: r.top,          left: r.right + pad },
+    { top: r.top - ch - pad, left: r.left },
+    { top: r.top,          left: r.left - cw - pad },
+  ];
+  for (const c of cands) {
+    if (c.top >= m && c.top + ch <= vh - m && c.left >= m && c.left + cw <= vw - m) {
+      card.style.top = c.top + 'px'; card.style.left = c.left + 'px'; return;
+    }
+  }
+  card.style.left = Math.max(m, Math.min(vw - cw - m, r.right + pad)) + 'px';
+  card.style.top  = Math.max(m, Math.min(vh - ch - m, r.top)) + 'px';
+}
+
+function simCoachRenderStep() {
+  const name = CH_NAMES[simCoachCh];
+  const steps = [
+    {
+      title: `${name} knocked out of alignment`,
+      body: `The <b>${name}</b> channel has been shifted out of registration — every other colour is still perfectly aligned. Your job is to bring it back to <b style="color:#3fb950">100%</b> using the registration fields.`,
+    },
+    {
+      title: `Focused on ${name} + Black`,
+      body: `Only <b>${name}</b> and <b>Black (K)</b> are shown on the canvas now, so you can read this channel's drift against the anchor without other colours in the way. Toggle the rest back on anytime from the legend chips.`,
+    },
+  ];
+  const s = steps[simCoachStep];
+  document.getElementById('sim-coach-swatch').style.background = CH_CSS[simCoachCh];
+  document.getElementById('sim-coach-title-text').textContent = s.title;
+  document.getElementById('sim-coach-body').innerHTML = s.body;
+  document.getElementById('sim-coach-progress').textContent = `${simCoachStep + 1} / ${steps.length}`;
+  document.getElementById('sim-coach-next').textContent = simCoachStep === steps.length - 1 ? 'GOT IT ✓' : 'NEXT ▶';
+
+  const el = simCoachTarget(simCoachStep);
+  simCoachSpotlight(el);
+  requestAnimationFrame(() => simCoachPositionCard(el));
+}
+
+function runSimCoach(chIdx) {
+  simCoachCh = chIdx;
+  simCoachStep = 0;
+  document.getElementById('sim-coach').classList.add('active');
+  simCoachRenderStep();
+}
+
+function endSimCoach() {
+  document.getElementById('sim-coach').classList.remove('active');
+}
+
+function initSimCoach() {
+  document.getElementById('sim-coach-next').addEventListener('click', () => {
+    if (simCoachStep < 1) { simCoachStep++; simCoachRenderStep(); }
+    else endSimCoach();
+  });
+  document.getElementById('sim-coach-backdrop').addEventListener('click', endSimCoach);
+  document.addEventListener('keydown', e => {
+    if (!document.getElementById('sim-coach').classList.contains('active')) return;
+    if (e.key === 'Escape') endSimCoach();
+    if (e.key === 'ArrowRight' || e.key === 'Enter') document.getElementById('sim-coach-next').click();
+  });
 }
 
 function positionWelcomeCard() {
