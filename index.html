@@ -491,7 +491,7 @@ footer {
   <div id="channel-scores"></div>
   <div class="hdr-spacer"></div>
   <span style="color:#555;font-size:10px;letter-spacing:.05em;">PATTERN</span>
-  <div style="display:flex;gap:4px;align-items:center;">
+  <div id="tut-pattern-btns" style="display:flex;gap:4px;align-items:center;">
     <button class="hdr-pat-btn active" data-pat="artwork">ARTWORK</button>
     <button class="hdr-pat-btn" data-pat="letter">LETTER</button>
     <button class="hdr-pat-btn" data-pat="grid">GRID</button>
@@ -531,14 +531,18 @@ footer {
     <div class="plabel" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
       <span>UNROLLED CAN VIEW &mdash; ALIGNMENT TEST PATTERN</span>
       <span style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
-        <span style="color:#555;font-size:10px;letter-spacing:.05em;">CAN FORMAT</span>
-        <button class="can-size-btn active" data-size="12oz">12oz</button>
-        <button class="can-size-btn" data-size="16oz">16oz</button>
-        <button class="can-size-btn" data-size="slk">SLK</button>
+        <span id="tut-can-format" style="display:inline-flex;gap:4px;align-items:center;">
+          <span style="color:#555;font-size:10px;letter-spacing:.05em;">CAN FORMAT</span>
+          <button class="can-size-btn active" data-size="12oz">12oz</button>
+          <button class="can-size-btn" data-size="16oz">16oz</button>
+          <button class="can-size-btn" data-size="slk">SLK</button>
+        </span>
         <span style="width:1px;background:#333;height:14px;display:inline-block;margin:0 2px;"></span>
-        <button class="focus-btn active" data-side="0">LEFT CAN</button>
-        <button class="focus-btn" data-side="1">RIGHT CAN</button>
-        <button class="focus-btn" data-side="-1">BOTH</button>
+        <span id="tut-focus-btns" style="display:inline-flex;gap:4px;align-items:center;">
+          <button class="focus-btn active" data-side="0">LEFT CAN</button>
+          <button class="focus-btn" data-side="1">RIGHT CAN</button>
+          <button class="focus-btn" data-side="-1">BOTH</button>
+        </span>
         <span style="width:1px;background:#333;height:14px;display:inline-block;margin:0 2px;"></span>
         <button class="focus-btn active" id="btn-crop">CROP IDLE</button>
         <span style="width:1px;background:#333;height:14px;display:inline-block;margin:0 2px;"></span>
@@ -2132,120 +2136,150 @@ function init(){
 // ════════════════════════════════════════════════════════════
 // TUTORIAL SYSTEM
 // ════════════════════════════════════════════════════════════
+// Returns the .sr-row whose field number label matches `num`
+function tutFindRow(num) {
+  for (const el of document.querySelectorAll('#reg-body .sr-num')) {
+    if (el.textContent.trim() === String(num)) return el.closest('.sr-row');
+  }
+  return null;
+}
+
 const TUTORIAL_STEPS = [
+  // 1 ── Welcome
   {
-    target: null,
-    title: 'Welcome to Canworks',
-    body: 'This trainer simulates a Hinterkopf can printer — the same system used on the production floor. You\'ll learn how to read the alignment views and correct registration across all five ink channels.\n\nClick NEXT to begin.',
+    getTarget: () => null,
+    title: 'Welcome to Canworks Alignment Trainer',
+    body: 'This trainer simulates a Hinterkopf can printer — the same system used on the production floor. Walk through each section to learn the controls, then try the live exercise at the end.<br><br>Use <strong style="color:#e0e0e0">→ arrow keys</strong> or the NEXT button to advance.',
   },
+  // 2 ── Station Grid
   {
-    target: '#station-grid',
+    getTarget: () => document.querySelector('#station-grid'),
     title: 'Ink Station Grid',
-    body: 'Each icon represents a physical station on the press. Click any <strong style="color:#e0e0e0">ink station</strong> (White, Black, Yellow, Magenta, Cyan) to select that channel and unlock its registration controls.\n\nUV coat and pinning stations have no alignment settings.',
+    body: 'Each icon is a physical station on the press. Click any <strong style="color:#e0e0e0">ink station</strong> — White, Black, Yellow, Magenta, or Cyan — to select that channel and unlock its registration controls.<br><br>UV coat and pinning stations have no alignment settings.',
   },
+  // 3 ── Settings Register header
   {
-    target: '#reg-header',
+    getTarget: () => document.querySelector('#reg-header'),
     title: 'Settings Register',
-    body: 'Once a station is selected, this panel shows its registration fields — modelled after the real machine\'s HMI. Fields are numbered to match the press control system.',
+    body: 'Once a station is selected, the register panel shows its ID and name. Field numbers match the real machine HMI so operators can cross-reference directly.',
     action: () => { if (S.selCh < 0) selectStation(1); },
   },
+  // 4 ── Field 2 — Global Axial
   {
-    target: null,  // dynamically set to field rows 3–5
-    targetId: 'axial-radial-rows',
-    title: 'Axial & Radial Shift',
-    body: '<strong style="color:#e0e0e0">Field 3 — Axial Shift:</strong> moves the colour up/down along the can height.<br><br><strong style="color:#e0e0e0">Fields 4 & 5 — Radial L/R:</strong> shifts the colour around the circumference, independently for the left (SPL) and right (SPR) mandrel.\n\nUse ▲▼ arrows to adjust in 0.25 mm steps.',
+    getTarget: () => tutFindRow(2),
+    title: 'Field 2 — Axial Shift All Colours',
+    body: 'A <strong style="color:#e0e0e0">global correction</strong> — shifts all five ink channels up or down together. Use this first to rough-in the vertical position before fine-tuning individual channels.<br><br>Use the ▲▼ arrows to adjust in 0.25 mm steps.',
     action: () => { if (S.selCh < 0) selectStation(1); },
   },
+  // 5 ── Field 3 — Per-channel Axial
   {
-    targetId: 'piezo-rows',
-    title: 'Middle Head & Piezo',
-    body: '<strong style="color:#e0e0e0">Fields 6 & 7 — Mid Offset:</strong> shifts only the P5/P2 middle printhead radially, relative to the column position.\n\n<strong style="color:#e0e0e0">Fields 9 & 11 — Piezo Set:</strong> fine-tunes the middle head\'s axial position via a piezo actuator. Fields 8 & 10 show the live current position (read-only).',
+    getTarget: () => tutFindRow(3),
+    title: 'Field 3 — Axial Shift (Per Channel)',
+    body: 'Fine-tunes <strong style="color:#e0e0e0">this colour\'s</strong> vertical position independently of the others. Positive = shifts toward the bottom of the can.<br><br>Adjust after the global axial (Field 2) is set.',
     action: () => { if (S.selCh < 0) selectStation(1); },
   },
+  // 6 ── Field 4 — Radial L
   {
-    target: '#ch-legend-wrap',
+    getTarget: () => tutFindRow(4),
+    title: 'Field 4 — Radial Shift L (LEFT CAN)',
+    body: 'Shifts this colour around the can circumference on the <strong style="color:#e0e0e0">LEFT CAN / SPL mandrel</strong>. Positive = shifts right.<br><br>Does not affect the RIGHT CAN — each mandrel is adjusted independently.',
+    action: () => { if (S.selCh < 0) selectStation(1); },
+  },
+  // 7 ── Field 5 — Radial R
+  {
+    getTarget: () => tutFindRow(5),
+    title: 'Field 5 — Radial Shift R (RIGHT CAN)',
+    body: 'Same as Field 4 but for the <strong style="color:#e0e0e0">RIGHT CAN / SPR mandrel</strong>.<br><br>It\'s common for the two mandrels to need slightly different radial values due to mechanical tolerances.',
+    action: () => { if (S.selCh < 0) selectStation(1); },
+  },
+  // 8 ── Field 6 — Mid Offset L
+  {
+    getTarget: () => tutFindRow(6),
+    title: 'Field 6 — Middle Head Offset L',
+    body: 'The middle printhead (P5 on the left stack) can shift <strong style="color:#e0e0e0">independently</strong> of the top and bottom heads. This offsets P5 radially on the LEFT CAN only.<br><br>Useful for correcting the seam at the P4/P5 overlap zone.',
+    action: () => { if (S.selCh < 0) selectStation(1); },
+  },
+  // 9 ── Field 7 — Mid Offset R
+  {
+    getTarget: () => tutFindRow(7),
+    title: 'Field 7 — Middle Head Offset R',
+    body: 'Same middle-head independent offset but for the <strong style="color:#e0e0e0">RIGHT CAN / P2 head</strong>.<br><br>Watch the Seam Zoom panel while adjusting — it shows the nozzle interleave changing in real time.',
+    action: () => { if (S.selCh < 0) selectStation(1); },
+  },
+  // 10 ── Field 9 — Piezo
+  {
+    getTarget: () => tutFindRow(9),
+    title: 'Fields 9 & 11 — Piezo Fine Tune',
+    body: 'The <strong style="color:#e0e0e0">piezo actuator</strong> moves the middle head axially with micron-level precision. Set your target position here — the head animates to it.<br><br>Fields 8 & 10 show the live current position as the actuator moves (read-only, no arrows).',
+    action: () => { if (S.selCh < 0) selectStation(1); },
+  },
+  // 11 ── Channel Legend
+  {
+    getTarget: () => document.querySelector('#ch-legend-wrap'),
     title: 'Ink Channel Legend',
-    body: 'Click any colour chip to <strong style="color:#e0e0e0">show or hide</strong> that ink channel on the canvas. Useful for isolating a single colour to check its registration without the others overlapping.',
+    body: 'Click any colour chip to <strong style="color:#e0e0e0">show or hide</strong> that channel on the canvas.<br><br>Isolate a single colour to check its registration without other channels overlapping it.',
   },
+  // 12 ── Can Format
   {
-    target: '.plabel',
-    targetQuery: '#view-panel .plabel',
-    title: 'Unrolled Can View',
-    body: 'The centre panel shows the can\'s surface fully unrolled — as if you cut the cylinder open and laid it flat. This is your primary alignment reference.\n\nAll three printheads (P4/P5/P6 or P1/P2/P3) are rendered stacked, with the active print zone highlighted.',
-  },
-  {
-    targetQuery: 'button[data-size]',
+    getTarget: () => document.querySelector('#tut-can-format'),
     title: 'Can Format Selector',
-    body: 'Switch between <strong style="color:#e0e0e0">12oz</strong>, <strong style="color:#e0e0e0">16oz</strong>, and <strong style="color:#e0e0e0">SLK</strong> (Sleek) can sizes. Each format loads the correct artwork and adjusts the print zone geometry automatically.\n\nSLK cans have a smaller diameter (58mm vs 66mm) — notice the canvas width changes.',
+    body: 'Switch between <strong style="color:#e0e0e0">12oz</strong>, <strong style="color:#e0e0e0">16oz</strong>, and <strong style="color:#e0e0e0">SLK</strong> (Sleek) can sizes. Each loads the correct artwork and adjusts the print zone height automatically.<br><br>SLK has a smaller diameter (58mm vs 66mm) — notice the canvas width changes.',
   },
+  // 13 ── Focus Buttons
   {
-    targetQuery: '.focus-btn[data-side]',
+    getTarget: () => document.querySelector('#tut-focus-btns'),
     title: 'Left / Right Can Focus',
-    body: 'Toggle between <strong style="color:#e0e0e0">LEFT CAN</strong> (SPL mandrel), <strong style="color:#e0e0e0">RIGHT CAN</strong> (SPR mandrel), or <strong style="color:#e0e0e0">BOTH</strong>.\n\nWhen a single can is focused, the canvas zooms to fill the screen — and the settings panel automatically dims the fields that don\'t apply to that side.',
+    body: 'Isolate <strong style="color:#e0e0e0">LEFT CAN</strong> or <strong style="color:#e0e0e0">RIGHT CAN</strong> to zoom in on one mandrel, or view <strong style="color:#e0e0e0">BOTH</strong> side-by-side.<br><br>The settings panel automatically dims the fields that don\'t apply to the side you\'re viewing.',
   },
+  // 14 ── Pattern Selector
   {
-    target: '#btn-crop',
-    title: 'Crop Idle',
-    body: 'Hides the idle nozzle zone above the print area so the active artwork fills more of the screen. On by default.\n\nThe idle zone (dark grey band) shows which nozzle rows aren\'t firing for this can height — useful for understanding head coverage, but often not needed during alignment.',
-  },
-  {
-    targetQuery: 'div[style*="PATTERN"]',
-    target: null,
-    targetId: 'pattern-row',
+    getTarget: () => document.querySelector('#tut-pattern-btns'),
     title: 'Pattern Selector',
-    body: '<strong style="color:#e0e0e0">ARTWORK</strong> — renders the real label artwork per ink channel, blended as it would print.\n\n<strong style="color:#e0e0e0">LETTER</strong> — large R letter spanning all three heads; misalignment tears it visibly.\n\n<strong style="color:#e0e0e0">GRID / TARGET / BURST</strong> — geometric registration patterns for precise alignment checks.',
+    body: '<strong style="color:#e0e0e0">ARTWORK</strong> — renders the real label blended across all channels, as it would print.<br><strong style="color:#e0e0e0">LETTER</strong> — large R spanning all heads; misalignment tears it visibly at the seam.<br><strong style="color:#e0e0e0">GRID / TARGET / BURST</strong> — geometric patterns for precise registration checks.',
   },
+  // 15 ── Crop Idle
   {
-    target: '#btn-loupe',
+    getTarget: () => document.querySelector('#btn-crop'),
+    title: 'Crop Idle',
+    body: 'Hides the idle nozzle zone (dark grey band above the artwork) so the active print area fills more of the screen. On by default.<br><br>Toggle it off to see which nozzle rows aren\'t firing for the current can height.',
+  },
+  // 16 ── Loupe
+  {
+    getTarget: () => document.querySelector('#btn-loupe'),
     title: 'Inspection Loupe',
-    body: 'Toggle the <strong style="color:#e0e0e0">LOUPE</strong> button, then hover over any area of the unrolled view. A 5× magnifying circle follows your cursor — like a physical inspection loupe.\n\nUse it to examine the nozzle interleave zone, artwork detail, or registration marks up close.',
+    body: 'Toggle <strong style="color:#e0e0e0">LOUPE</strong>, then hover anywhere on the canvas for a live 5× magnifying view — like a physical inspection loupe.<br><br>Use it to examine the seam zone, artwork detail, or fine registration marks.',
   },
+  // 17 ── Head Bar
   {
-    target: '#headbar-canvas',
-    title: 'Printhead Bar View',
-    body: 'A schematic of the three-head stack for the selected channel. Shows each head\'s physical position including radial shift and piezo offset.\n\nYellow highlights = gap between heads (missed rows). Red = overlap (double coverage). The P5/P2 middle head is outlined in blue — it moves independently.',
+    getTarget: () => document.querySelector('#headbar-canvas'),
+    title: 'Printhead Bar',
+    body: 'Schematic of the three-head stack for the selected channel. Each head\'s position reflects the current radial shift and piezo offset.<br><br><strong style="color:#d29922">Yellow</strong> = gap between heads (missed rows). <strong style="color:#f85149">Red</strong> = overlap. The middle head (P5/P2) is highlighted in <strong style="color:#58a6ff">blue</strong>.',
   },
+  // 18 ── Top-Down
   {
-    target: '#topdown-canvas',
+    getTarget: () => document.querySelector('#topdown-canvas'),
     title: 'Top-Down Radial View',
-    body: 'A radial view looking down the can axis. Each ink channel appears as a coloured arc — a perfectly registered press would show all arcs starting at the same angle.\n\nArc offset = radial misalignment. The gap at the top shows the seam/reference point.',
+    body: 'Looking down the can axis. Each ink channel appears as a coloured arc — a perfectly registered press shows all arcs aligned at the same angle.<br><br>Arc offset = radial misalignment. The gap at the top is the seam reference point.',
   },
+  // 19 ── Seam Zoom
   {
-    target: '#seam-zoom-canvas',
+    getTarget: () => document.querySelector('#seam-zoom-canvas'),
     title: 'Seam Zoom — Nozzle Interleave',
-    body: 'Shows a magnified cross-section of the P4/P5 (or P1/P2) overlap seam — the ±14 rows where two heads interleave.\n\n<strong style="color:#e0e0e0">Vibrant rows</strong> = firing correctly. <strong style="color:#f85149">Red</strong> = gap (missed rows). <strong style="color:#d29922">Yellow</strong> = overlap (double hit).\n\nClick <strong style="color:#e0e0e0">POPUP ↗</strong> for a full-size view.',
+    body: 'Cross-section of the ±14 rows where the bottom and middle heads overlap. Each row is either fired by one head or the other — never both at perfect alignment.<br><br><strong style="color:#58a6ff">Vibrant</strong> = firing. <strong style="color:#f85149">Red</strong> = gap. <strong style="color:#d29922">Yellow</strong> = double hit. Click <strong style="color:#e0e0e0">POPUP ↗</strong> for a full-size view.',
   },
+  // 20 ── Live Exercise
   {
-    target: null,
+    getTarget: () => null,
     title: 'Live Training Exercise',
-    body: 'Time to practise. Click <strong style="color:#d29922">RANDOMIZE</strong> in the left panel to scramble the alignment — then use the registration fields to bring the quality score back to 100%.\n\nStart with <strong style="color:#e0e0e0">Black (K)</strong> as your reference channel — it\'s never randomized. Work through each colour until all channels read green.',
-    action: () => {
-      // Ensure a channel is selected so RANDOMIZE is available
-      if (S.selCh < 0) selectStation(1);
-    },
+    body: 'Now practise. Click <strong style="color:#d29922">RANDOMIZE</strong> in the left panel to scramble the alignment — then use the registration fields to bring the quality score back to <strong style="color:#3fb950">100%</strong>.<br><br>Start with <strong style="color:#999">Black (K)</strong> as your anchor — it\'s never randomized. Work through each colour until all channel scores read green.',
+    action: () => { if (S.selCh < 0) selectStation(1); },
   },
 ];
 
 let tutStep = 0;
 
 function tutGetTargetEl(step) {
-  if (step.targetQuery) {
-    const el = document.querySelector(step.targetQuery);
-    if (el) return el;
-  }
-  if (step.targetId === 'axial-radial-rows') {
-    // Target the first three adjustable rows in reg-body
-    return document.querySelector('#reg-body .sr-row');
-  }
-  if (step.targetId === 'piezo-rows') {
-    const rows = document.querySelectorAll('#reg-body .sr-row');
-    return rows[rows.length > 4 ? 3 : 0] || null;
-  }
-  if (step.targetId === 'pattern-row') {
-    return document.querySelector('.hdr-pat-btn')?.closest('div') || null;
-  }
-  if (step.target) return document.querySelector(step.target);
-  return null;
+  return step.getTarget ? step.getTarget() : null;
 }
 
 function tutSpotlightEl(el) {
