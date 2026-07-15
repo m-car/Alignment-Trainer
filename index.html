@@ -2020,6 +2020,9 @@ function wireToolBtns(){
     buildChLegend();
     buildRegPanel();
     requestAnimationFrame(renderAll);
+
+    // Guided challenge notification
+    runTotalCoach();
   };
 
   if(reset && S.selCh>=0) reset.onclick=()=>{
@@ -2512,21 +2515,12 @@ function injectHelpButtons() {
   document.addEventListener('keydown', e => { if (e.key === 'Escape') hideHelpPop(); });
 }
 
-// ── SIMULATE-1-COLOR guided coach ──────────────────────────────
-let simCoachStep = 0;
-let simCoachCh   = -1;
+// ── Guided coach (shared by SIMULATE 1 COLOR & TOTAL MISALIGNMENT) ──────
+// Each step: { label, title, body, swatch?(css colour), flash?(css colour), target:()=>el }
+let coachSteps = [];
+let coachStep  = 0;
 
-function simCoachTarget(step) {
-  if (step === 0) {
-    const stIdx = STATIONS.findIndex(s => s.chIdx === simCoachCh);
-    return document.querySelectorAll('#station-grid-inner .st-icon')[stIdx]
-        || document.getElementById('station-grid');
-  }
-  return document.querySelector(`#ch-legend .ch-chip[data-chi="${simCoachCh}"]`)
-      || document.getElementById('ch-legend-wrap');
-}
-
-function simCoachSpotlight(el) {
+function coachSpotlight(el, flashColor) {
   const spot = document.getElementById('sim-coach-spot');
   const pad = 6;
   const r = el.getBoundingClientRect();
@@ -2534,15 +2528,16 @@ function simCoachSpotlight(el) {
   spot.style.left   = (r.left - pad) + 'px';
   spot.style.width  = (r.width  + pad*2) + 'px';
   spot.style.height = (r.height + pad*2) + 'px';
-  // Flash the element in its own channel colour
-  el.style.setProperty('--flash-col', CH_CSS[simCoachCh]);
-  el.classList.remove('ch-flash');
-  void el.offsetWidth; // restart animation
-  el.classList.add('ch-flash');
-  setTimeout(() => el.classList.remove('ch-flash'), 1900);
+  if (flashColor) {
+    el.style.setProperty('--flash-col', flashColor);
+    el.classList.remove('ch-flash');
+    void el.offsetWidth; // restart animation
+    el.classList.add('ch-flash');
+    setTimeout(() => el.classList.remove('ch-flash'), 1900);
+  }
 }
 
-function simCoachPositionCard(el) {
+function coachPositionCard(el) {
   const card = document.getElementById('sim-coach-card');
   const cw = card.offsetWidth || 320, ch = card.offsetHeight || 180;
   const vw = window.innerWidth, vh = window.innerHeight, m = 16, pad = 12;
@@ -2562,50 +2557,70 @@ function simCoachPositionCard(el) {
   card.style.top  = Math.max(m, Math.min(vh - ch - m, r.top)) + 'px';
 }
 
-function simCoachRenderStep() {
-  const name = CH_NAMES[simCoachCh];
-  const steps = [
-    {
-      title: `${name} knocked out of alignment`,
-      body: `The <b>${name}</b> channel has been shifted out of registration — every other colour is still perfectly aligned. Your job is to bring it back to <b style="color:#3fb950">100%</b> using the registration fields.`,
-    },
-    {
-      title: `Focused on ${name} + Black`,
-      body: `Only <b>${name}</b> and <b>Black (K)</b> are shown on the canvas now, so you can read this channel's drift against the anchor without other colours in the way. Toggle the rest back on anytime from the legend chips.`,
-    },
-  ];
-  const s = steps[simCoachStep];
-  document.getElementById('sim-coach-swatch').style.background = CH_CSS[simCoachCh];
+function coachRenderStep() {
+  const s = coachSteps[coachStep];
+  const swatch = document.getElementById('sim-coach-swatch');
+  if (s.swatch) { swatch.style.display = 'inline-block'; swatch.style.background = s.swatch; }
+  else swatch.style.display = 'none';
+  document.getElementById('sim-coach-label').textContent = s.label || 'MISALIGNMENT SIMULATED';
   document.getElementById('sim-coach-title-text').textContent = s.title;
   document.getElementById('sim-coach-body').innerHTML = s.body;
-  document.getElementById('sim-coach-progress').textContent = `${simCoachStep + 1} / ${steps.length}`;
-  document.getElementById('sim-coach-next').textContent = simCoachStep === steps.length - 1 ? 'GOT IT ✓' : 'NEXT ▶';
+  document.getElementById('sim-coach-progress').textContent = `${coachStep + 1} / ${coachSteps.length}`;
+  document.getElementById('sim-coach-next').textContent = coachStep === coachSteps.length - 1 ? 'GOT IT ✓' : 'NEXT ▶';
 
-  const el = simCoachTarget(simCoachStep);
-  simCoachSpotlight(el);
-  requestAnimationFrame(() => simCoachPositionCard(el));
+  const el = s.target();
+  coachSpotlight(el, s.flash);
+  requestAnimationFrame(() => coachPositionCard(el));
 }
 
-function runSimCoach(chIdx) {
-  simCoachCh = chIdx;
-  simCoachStep = 0;
+function runCoach(steps) {
+  coachSteps = steps;
+  coachStep  = 0;
   document.getElementById('sim-coach').classList.add('active');
-  simCoachRenderStep();
+  coachRenderStep();
 }
 
-function endSimCoach() {
+function endCoach() {
   document.getElementById('sim-coach').classList.remove('active');
+}
+
+// SIMULATE 1 COLOR — names the drifted colour, then explains the isolation
+function runSimCoach(chIdx) {
+  const name = CH_NAMES[chIdx], col = CH_CSS[chIdx];
+  const stIdx = STATIONS.findIndex(s => s.chIdx === chIdx);
+  runCoach([
+    { label: 'MISALIGNMENT SIMULATED', swatch: col, flash: col,
+      title: `${name} knocked out of alignment`,
+      body: `The <b>${name}</b> channel has been shifted out of registration — every other colour is still perfectly aligned. Your job is to bring it back to <b style="color:#3fb950">100%</b> using the registration fields.`,
+      target: () => document.querySelectorAll('#station-grid-inner .st-icon')[stIdx] || document.getElementById('station-grid') },
+    { label: 'MISALIGNMENT SIMULATED', swatch: col, flash: col,
+      title: `Focused on ${name} + Black`,
+      body: `Only <b>${name}</b> and <b>Black (K)</b> are shown on the canvas now, so you can read this channel's drift against the anchor without other colours in the way. Toggle the rest back on anytime from the legend chips.`,
+      target: () => document.querySelector(`#ch-legend .ch-chip[data-chi="${chIdx}"]`) || document.getElementById('ch-legend-wrap') },
+  ]);
+}
+
+// SIMULATE TOTAL MISALIGNMENT — frames it as a challenge, points at the chips
+function runTotalCoach() {
+  runCoach([
+    { label: 'CHALLENGE', title: 'Total misalignment',
+      body: `Every colour channel has been knocked out of registration — this is the full-press challenge. <b style="color:#999">Black (K)</b> stays fixed as your anchor and never moves.`,
+      target: () => document.getElementById('station-grid') },
+    { label: 'CHALLENGE', title: 'One colour at a time',
+      body: `Don't chase everything at once. Pick a single <b>colour chip</b> to isolate it, align that channel to <b style="color:#999">Black (K)</b>, then move to the next — until every score reads <b style="color:#3fb950">100%</b>.`,
+      target: () => document.getElementById('ch-legend-wrap') },
+  ]);
 }
 
 function initSimCoach() {
   document.getElementById('sim-coach-next').addEventListener('click', () => {
-    if (simCoachStep < 1) { simCoachStep++; simCoachRenderStep(); }
-    else endSimCoach();
+    if (coachStep < coachSteps.length - 1) { coachStep++; coachRenderStep(); }
+    else endCoach();
   });
-  document.getElementById('sim-coach-backdrop').addEventListener('click', endSimCoach);
+  document.getElementById('sim-coach-backdrop').addEventListener('click', endCoach);
   document.addEventListener('keydown', e => {
     if (!document.getElementById('sim-coach').classList.contains('active')) return;
-    if (e.key === 'Escape') endSimCoach();
+    if (e.key === 'Escape') endCoach();
     if (e.key === 'ArrowRight' || e.key === 'Enter') document.getElementById('sim-coach-next').click();
   });
 }
