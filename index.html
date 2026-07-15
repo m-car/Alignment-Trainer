@@ -1091,6 +1091,28 @@ function drawCanBg(ctx, cx) {
   ctx.imageSmoothingEnabled = prevSmooth;
   ctx.restore();
 
+  // Specular reflection — a tight primary highlight plus a weaker secondary,
+  // the way polished aluminum catches studio lighting.
+  const hi = ctx.createLinearGradient(cx, 0, cx + CAN_W, 0);
+  hi.addColorStop(0,    'rgba(255,255,255,0)');
+  hi.addColorStop(0.44, 'rgba(255,255,255,0)');
+  hi.addColorStop(0.50, 'rgba(255,255,255,0.55)');
+  hi.addColorStop(0.56, 'rgba(255,255,255,0)');
+  hi.addColorStop(0.74, 'rgba(255,255,255,0)');
+  hi.addColorStop(0.80, 'rgba(255,255,255,0.18)');
+  hi.addColorStop(0.86, 'rgba(255,255,255,0)');
+  ctx.fillStyle = hi;
+  ctx.fillRect(cx, activeY, CAN_W, PRINT_H);
+
+  // Fresnel edge rims — grazing angles at the cylinder edges brighten
+  const edgeW = CAN_W * 0.10;
+  const gl = ctx.createLinearGradient(cx, 0, cx + edgeW, 0);
+  gl.addColorStop(0, 'rgba(245,248,252,0.55)'); gl.addColorStop(1, 'rgba(245,248,252,0)');
+  ctx.fillStyle = gl; ctx.fillRect(cx, activeY, edgeW, PRINT_H);
+  const gr = ctx.createLinearGradient(cx + CAN_W, 0, cx + CAN_W - edgeW, 0);
+  gr.addColorStop(0, 'rgba(245,248,252,0.55)'); gr.addColorStop(1, 'rgba(245,248,252,0)');
+  ctx.fillStyle = gr; ctx.fillRect(cx + CAN_W - edgeW, activeY, edgeW, PRINT_H);
+
   // Outer border for full head stack
   ctx.strokeStyle = '#555'; ctx.lineWidth = 1;
   ctx.strokeRect(cx, CAN_TOP_Y, CAN_W, CAN_H);
