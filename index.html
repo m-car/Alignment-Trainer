@@ -462,7 +462,7 @@ footer {
 </div>
 
 <footer>
-  <span>P4=bottom head &nbsp;|&nbsp; P5=middle head (staggered, piezo) &nbsp;|&nbsp; P6=top head &nbsp;|&nbsp; 12oz artwork: P4+lower P5 active &nbsp;|&nbsp; SPL=left mandrel &nbsp;|&nbsp; SPR=right mandrel</span>
+  <span>SPL: P4=bottom, P5=middle (piezo), P6=top &nbsp;|&nbsp; SPR: P1=bottom, P2=middle (piezo), P3=top &nbsp;|&nbsp; SPL=left mandrel &nbsp;|&nbsp; SPR=right mandrel</span>
   <span id="status">Tap a printhead station to begin</span>
 </footer>
 
@@ -606,7 +606,8 @@ let R_CAN_X      = L_CAN_X + CAN_W + 30;
 const CAN_TOP_Y  = 36;
 const MID_STAGGER_PX = 15;  // visual stagger in head bar view
 
-const HEAD_LABELS = ['P6','P5','P4'];  // index 0,1,2 → P6 (top), P5 (middle), P4 (bottom)
+const HEAD_LABELS_L = ['P6','P5','P4'];  // SPL/CAN1: index 0,1,2 → P6 (top), P5 (middle), P4 (bottom)
+const HEAD_LABELS_R = ['P3','P2','P1'];  // SPR/CAN2: index 0,1,2 → P3 (top), P2 (middle), P1 (bottom)
 
 // ── ARTWORK ─────────────────────────────────────────────────
 // Pre-tinted offscreen canvases, one per ink channel (active format).
@@ -1118,8 +1119,9 @@ function renderUnrolled() {
   // Head labels on right margin of rightmost visible can
   const labelCol = cols[cols.length-1];
   const labelX = canXs[labelCol]+CAN_W+4;
+  const headLabels = labelCol === 0 ? HEAD_LABELS_L : HEAD_LABELS_R;
   uCtx.font='9px Courier New'; uCtx.textAlign='left';
-  HEAD_LABELS.forEach((lbl,i)=>{
+  headLabels.forEach((lbl,i)=>{
     const midY = CAN_TOP_Y+headBaseY(i)+HEAD_PX_H/2+3;
     const inActiveZone = (CAN_TOP_Y+headBaseY(i)+HEAD_PX_H) > (CAN_TOP_Y+PRINT_OFFSET_Y);
     uCtx.fillStyle = inActiveZone ? '#888' : '#3a3a3a';
@@ -1291,7 +1293,7 @@ function renderHeadBar() {
       // Labels
       hbCtx.font='9px Courier New'; hbCtx.textAlign='center';
       hbCtx.fillStyle=isP2?'#58a6ff':'#bbb';
-      hbCtx.fillText(HEAD_LABELS[idx], hx+headW/2, hy+11);
+      hbCtx.fillText((col===0?HEAD_LABELS_L:HEAD_LABELS_R)[idx], hx+headW/2, hy+11);
       hbCtx.fillStyle='#444'; hbCtx.font='8px Courier New';
 
       // Show radial position of this head
