@@ -400,7 +400,7 @@ footer {
 </div>
 
 <footer>
-  <span>P1=bottom head (operator side) &nbsp;|&nbsp; P2=middle (staggered, piezo) &nbsp;|&nbsp; P3=top head &nbsp;|&nbsp; SPL=left mandrel &nbsp;|&nbsp; SPR=right mandrel</span>
+  <span>P1=bottom head (operator side) &nbsp;|&nbsp; P2=top head (staggered, piezo) &nbsp;|&nbsp; 12oz config: P1+P2 only &nbsp;|&nbsp; SPL=left mandrel &nbsp;|&nbsp; SPR=right mandrel</span>
   <span id="status">Tap a printhead station to begin</span>
 </footer>
 
@@ -483,19 +483,20 @@ const tdCtx    = tdCanvas.getContext('2d');
 //   index 1 = P2 (middle, staggered, piezo-driven)
 //   index 2 = P1 (bottom of can / operator side)
 // ════════════════════════════════════════════════════════════
-// Real machine: 3096px print height at 700dpi = 112.3mm, 3 heads × 37.4mm each
-// At MM_PX=3.2: HEAD_PX_H = 37.4mm × 3.2 = 120px (real), OVERLAP exaggerated to 6px for visibility
-const HEAD_PX_H  = 120;
-const OVERLAP_PX = 6;
-const NET_H      = HEAD_PX_H - OVERLAP_PX;   // 114
-const CAN_H      = NET_H * 2 + HEAD_PX_H;    // 348
+// Real machine: 256 nozzles × 0.255mm/nozzle = 65.2mm per head
+// 12oz can uses P1 (bottom) + P2 (middle) only — P3 not used
+// At MM_PX=3.2: HEAD_PX_H = 65.2mm × 3.2 = 208.64 ≈ 209px
+const HEAD_PX_H  = 209;
+const OVERLAP_PX = 6;     // exaggerated from real ~0.36mm for visibility
+const NET_H      = HEAD_PX_H - OVERLAP_PX;   // 203
+const CAN_H      = NET_H + HEAD_PX_H;         // 412 (2 heads: P2 + P1)
 const CAN_W      = 663;  // full can circumference: π×66mm × 3.2px/mm = 207.3mm × 3.2 ≈ 663px
 const L_CAN_X    = 20;
 const R_CAN_X    = L_CAN_X + CAN_W + 30; // 30px gap between cans
 const CAN_TOP_Y  = 36;
 const MID_STAGGER_PX = 15;  // visual stagger in head bar view
 
-const HEAD_LABELS = ['P3','P2','P1'];  // index 0,1,2 → P3,P2,P1
+const HEAD_LABELS = ['P2','P1'];  // index 0,1 → P2 (top), P1 (bottom) — 12oz config
 
 // ── ARTWORK ─────────────────────────────────────────────────
 // Pre-tinted offscreen canvases, one per ink channel.
@@ -540,7 +541,7 @@ function headBaseY(idx) { return idx * NET_H; }
 // Returns render parameters for one head band
 function headParams(chIdx, col, idx) {
   const ch  = S.ch[chIdx];
-  const isP2 = idx === 1;
+  const isP2 = idx === 0;  // P2 is top head (idx 0) in 2-head config
 
   // Axial (Y): global + per-channel. Piezo only affects P2.
   const axialMM = S.globalAxial + ch.axialShift;
@@ -608,7 +609,7 @@ function drawCanBg(ctx, cx) {
 // At zero offset they fully interleave (smooth). When P2 shifts via
 // midOffset or piezo the phases slide apart: double-covered rows go dark,
 // uncovered rows go white — visible banding/dashing at the seam.
-// NOZZLE_STRIPE=2 with NET_H=114: phases alternate every 2px row across the seam,
+// NOZZLE_STRIPE=2 with NET_H=203: phases alternate every 2px row across the seam,
 // perfectly interleaving at zero offset regardless of NET_H parity.
 const NOZZLE_STRIPE = 2;
 
@@ -630,7 +631,7 @@ function drawStripedZone(ctx, x, w, yFrom, yTo, refBy, phase) {
 function drawBand(ctx, chIdx, col, idx) {
   const p     = headParams(chIdx, col, idx);
   const above = idx > 0 ? headParams(chIdx, col, idx - 1) : null;
-  const below = idx < 2 ? headParams(chIdx, col, idx + 1) : null;
+  const below = idx < 1 ? headParams(chIdx, col, idx + 1) : null;
   const [r,g,b,ba] = INK[chIdx];
   const al = Math.min(1, ba / 255);
   const cx = col === 0 ? L_CAN_X : R_CAN_X;
@@ -710,7 +711,7 @@ function drawGapOverlap(ctx, col) {
   }
 }
 
-// Draws a single large letter spanning all 3 heads for one channel/column.
+// Draws a single large letter spanning both heads for one channel/column.
 // Each channel uses its own ink color via multiply blend — aligned = black.
 // Draw the registration letter in three independent strips — one per head.
 // P3 and P1 follow the column radial; P2 adds its own midOffset + piezo so
@@ -733,18 +734,17 @@ function drawRegText(ctx, chIdx, col) {
   const dyP2  = dy + piezoPx; // P2 vertical includes piezo
 
   const refTop    = CAN_TOP_Y + headBaseY(0);
-  const refBottom = CAN_TOP_Y + headBaseY(2) + HEAD_PX_H;
+  const refBottom = CAN_TOP_Y + headBaseY(1) + HEAD_PX_H;
   const blockH    = refBottom - refTop;
   const fontSize  = Math.round(blockH * 1.05);
 
   const [r,g,b] = INK[chIdx];
   const inkColor = chIdx === 0 ? `rgba(100,100,100,0.90)` : `rgba(${r},${g},${b},0.88)`;
 
-  // Per-head dx and dy — P2 shifts independently on both axes
+  // Per-head dx and dy — P2 (idx 0) shifts independently on both axes
   const headOffsets = [
-    { dx: dxCol, dy: dyCol },  // P3
-    { dx: dxP2,  dy: dyP2  },  // P2 — midOffset (X) + piezo (Y)
-    { dx: dxCol, dy: dyCol },  // P1
+    { dx: dxP2,  dy: dyP2  },  // P2 (top) — midOffset (X) + piezo (Y)
+    { dx: dxCol, dy: dyCol },  // P1 (bottom)
   ];
 
   // Draw the selected pattern at the given per-head offset
@@ -844,7 +844,7 @@ function drawRegText(ctx, chIdx, col) {
     const stripTop = CAN_TOP_Y + headBaseY(hi);
     const stripBot = stripTop + HEAD_PX_H;
     const hasAbove = hi > 0;
-    const hasBelow = hi < 2;
+    const hasBelow = hi < 1;
 
     // Seam boundary positions (fixed, independent of axial shift)
     const topSeamBoundary = CAN_TOP_Y + headBaseY(hi);       // = stripTop
@@ -902,7 +902,7 @@ function renderUnrolled() {
     uCtx.save(); uCtx.setLineDash([4,4]);
     uCtx.strokeStyle='rgba(255,255,80,0.3)'; uCtx.lineWidth=1;
     cols.forEach(col=>{
-      for(let i=0;i<3;i++) uCtx.strokeRect(canXs[col], CAN_TOP_Y+headBaseY(i), CAN_W, HEAD_PX_H);
+      for(let i=0;i<2;i++) uCtx.strokeRect(canXs[col], CAN_TOP_Y+headBaseY(i), CAN_W, HEAD_PX_H);
     }); uCtx.restore();
   }
 
@@ -911,7 +911,7 @@ function renderUnrolled() {
     const cx = canXs[col];
     uCtx.save();
     uCtx.strokeStyle='rgba(120,120,120,0.15)'; uCtx.lineWidth=0.8; uCtx.setLineDash([3,5]);
-    for(let i=1;i<3;i++){
+    for(let i=1;i<2;i++){
       const by = CAN_TOP_Y+headBaseY(i);
       uCtx.beginPath(); uCtx.moveTo(cx,by); uCtx.lineTo(cx+CAN_W,by); uCtx.stroke();
     }
@@ -922,7 +922,7 @@ function renderUnrolled() {
   if (!S.showText)
     for(let chIdx=0;chIdx<5;chIdx++)
       if(S.chVisible[chIdx])
-        cols.forEach(col=>{ for(let i=0;i<3;i++) drawBand(uCtx,chIdx,col,i); });
+        cols.forEach(col=>{ for(let i=0;i<2;i++) drawBand(uCtx,chIdx,col,i); });
 
   // Registration text overlay — each color layer multiplied so aligned = black
   if (S.showText)
@@ -967,7 +967,6 @@ function renderUnrolled() {
   });
   uCtx.fillStyle='#2a4a2a';
   uCtx.fillText('↕ blend', labelX, CAN_TOP_Y+NET_H+3);
-  uCtx.fillText('↕ blend', labelX, CAN_TOP_Y+NET_H*2+3);
 
 
   uCtx.restore();
@@ -975,7 +974,7 @@ function renderUnrolled() {
 
 // ════════════════════════════════════════════════════════════
 // RENDER — HEAD BAR VIEW
-// P3 top, P2 middle (staggered), P1 bottom
+// P2 top (staggered/adjustable), P1 bottom — 12oz 2-head config
 // ════════════════════════════════════════════════════════════
 function renderHeadBar() {
   const W=hbCanvas.width, H=hbCanvas.height;
@@ -991,9 +990,9 @@ function renderHeadBar() {
   const sx=(W-totalW)/2, sy=22;
 
   hbCtx.fillStyle='#0d0d0d';
-  hbCtx.fillRect(sx-8, sy-6, totalW+16, rowGap*2+headH+10);
+  hbCtx.fillRect(sx-8, sy-6, totalW+16, rowGap+headH+10);
   hbCtx.strokeStyle='#1e1e1e'; hbCtx.lineWidth=1.5;
-  hbCtx.strokeRect(sx-8, sy-6, totalW+16, rowGap*2+headH+10);
+  hbCtx.strokeRect(sx-8, sy-6, totalW+16, rowGap+headH+10);
 
   hbCtx.font='9px Arial'; hbCtx.fillStyle='#333'; hbCtx.textAlign='center';
   hbCtx.fillText('SPL / CAN 1', sx+headW/2, sy-11);
@@ -1003,8 +1002,8 @@ function renderHeadBar() {
     const colX=sx+col*(headW+colGap);
     const rad=col===0?ch.radialL:ch.radialR;
 
-    for(let idx=0;idx<3;idx++){
-      const isP2=idx===1;
+    for(let idx=0;idx<2;idx++){
+      const isP2=idx===0;  // P2 is top head (idx 0) in 2-head config
       const stag=isP2?MID_STAGGER_PX*0.5:0;
       let mPx=0;
       if(isP2) mPx=(col===0?ch.piezoCurrL:ch.piezoCurrR)/500*5;
@@ -1014,7 +1013,7 @@ function renderHeadBar() {
 
       // Gap/overlap indicator between adjacent heads
       if(idx>0){
-        const pm=idx-1===1?(col===0?ch.piezoCurrL:ch.piezoCurrR)/500*5:0;
+        const pm=idx-1===0?(col===0?ch.piezoCurrL:ch.piezoCurrR)/500*5:0;
         const pby=sy+(idx-1)*rowGap+pm+(S.globalAxial+ch.axialShift)*MM_PX*0.4+headH;
         const gap=hy-pby;
         if(gap>2){ hbCtx.fillStyle='rgba(255,200,30,0.3)'; hbCtx.fillRect(colX,pby,headW,gap); }
@@ -1051,7 +1050,7 @@ function renderHeadBar() {
     }
 
     // Radial column label
-    const ry=sy+rowGap*2+headH+14;
+    const ry=sy+rowGap+headH+14;
     hbCtx.font='8px Courier New'; hbCtx.fillStyle='#58a6ff'; hbCtx.textAlign='center';
     hbCtx.fillText(`${fmt(rad)} mm`, colX+headW/2, ry);
     hbCtx.fillStyle='#333';
