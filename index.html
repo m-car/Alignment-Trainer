@@ -190,6 +190,12 @@ header h1 {
 .sr-row:hover { background: rgba(255,255,255,0.015); }
 .sr-row.global-row { background: rgba(88,166,255,0.04); }
 .sr-row.display-row { opacity: 0.75; }
+.sr-row.muted {
+  opacity: 0.22;
+  pointer-events: none;
+}
+.sr-row.muted .sr-label strong { color: #444; }
+.sr-row.muted .val-box { color: #333; border-color: #1a1a1a; }
 
 .sr-num {
   width: 22px; flex-shrink: 0;
@@ -1602,8 +1608,12 @@ function selectStation(stIdx){
   renderAll();
 }
 
-function makeRow(num, labelHTML, ctrlHTML, classes=''){
-  return `<div class="sr-row ${classes}">
+function makeRow(num, labelHTML, ctrlHTML, classes='', side=''){
+  // side: 'L' = SPL/CAN1 only, 'R' = SPR/CAN2 only, '' = always active
+  let muted = false;
+  if (side === 'L' && S.focusSide === 1) muted = true;
+  if (side === 'R' && S.focusSide === 0) muted = true;
+  return `<div class="sr-row ${classes}${muted ? ' muted' : ''}">
     <div class="sr-num">${num}</div>
     <div class="sr-label">${labelHTML}</div>
     <div class="sr-ctrl">${ctrlHTML}</div>
@@ -1685,41 +1695,41 @@ function buildRegPanel(){
     buildField2HTML()+
     makeRow(3,
       `<strong>AXIAL SHIFT</strong><em>(+ = head / bottom)</em>`,
-      makeArrField('axialShift', ch.axialShift, 'mm')
+      makeArrField('axialShift', ch.axialShift, 'mm'), '', ''
     )+
     makeRow(4,
       `<strong>RADIAL L SHIFT</strong><em>(+ = right) &nbsp; SPL</em>`,
-      makeArrField('radialL', ch.radialL, 'mm')
+      makeArrField('radialL', ch.radialL, 'mm'), '', 'L'
     )+
     makeRow(5,
       `<strong>RADIAL R SHIFT</strong><em>(+ = right) &nbsp; SPR</em>`,
-      makeArrField('radialR', ch.radialR, 'mm')
+      makeArrField('radialR', ch.radialR, 'mm'), '', 'R'
     )+
     makeRow(6,
-      `<strong>MIDDLE OFFSET PRINT HEAD L</strong><em>(+ = right) &nbsp; SPL / P2 only</em>`,
-      makeArrField('midOffsetL', ch.midOffsetL, 'mm')
+      `<strong>MIDDLE OFFSET PRINT HEAD L</strong><em>(+ = right) &nbsp; SPL / P5 only</em>`,
+      makeArrField('midOffsetL', ch.midOffsetL, 'mm'), '', 'L'
     )+
     makeRow(7,
       `<strong>MIDDLE OFFSET PRINT HEAD R</strong><em>(+ = right) &nbsp; SPR / P2 only</em>`,
-      makeArrField('midOffsetR', ch.midOffsetR, 'mm')
+      makeArrField('midOffsetR', ch.midOffsetR, 'mm'), '', 'R'
     )+
     makeRow(8,
       `<strong>CURRENT POSITION PIEZO</strong><em>MIDDLE PRINT HEAD L &nbsp; [read only]</em>`,
       makeValBox('v-pCurrL', Math.round(ch.piezoCurrL), 'µm', true),
-      'display-row'
+      'display-row', 'L'
     )+
     makeRow(9,
       `<strong>SET POSITION PIEZO MIDDLE HEAD L</strong><em>(− = head / bottom)</em>`,
-      makeArrField('piezoSetL', ch.piezoSetL, 'µm')
+      makeArrField('piezoSetL', ch.piezoSetL, 'µm'), '', 'L'
     )+
     makeRow(10,
       `<strong>CURRENT POSITION PIEZO</strong><em>MIDDLE PRINT HEAD R &nbsp; [read only]</em>`,
       makeValBox('v-pCurrR', Math.round(ch.piezoCurrR), 'µm', true),
-      'display-row'
+      'display-row', 'R'
     )+
     makeRow(11,
       `<strong>SET POSITION PIEZO MIDDLE HEAD R</strong><em>(− = head / bottom)</em>`,
-      makeArrField('piezoSetR', ch.piezoSetR, 'µm')
+      makeArrField('piezoSetR', ch.piezoSetR, 'µm'), '', 'R'
     )+
     buildToolBtns();
 
@@ -1928,6 +1938,7 @@ function initFocusBtns() {
     btn.addEventListener('click', () => {
       S.focusSide = parseInt(btn.dataset.side);
       document.querySelectorAll('.focus-btn[data-side]').forEach(b => b.classList.toggle('active', b === btn));
+      if (S.selCh >= 0) buildRegPanel();
       renderAll();
     });
   });
