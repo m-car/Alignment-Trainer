@@ -483,17 +483,57 @@ const tdCtx    = tdCanvas.getContext('2d');
 //   index 1 = P2 (middle, staggered, piezo-driven)
 //   index 2 = P1 (bottom of can / operator side)
 // ════════════════════════════════════════════════════════════
-const HEAD_PX_H  = 66;
-const OVERLAP_PX = 10;
-const NET_H      = HEAD_PX_H - OVERLAP_PX;   // 56
-const CAN_H      = NET_H * 2 + HEAD_PX_H;    // 178
-const CAN_W      = 268;
+// Real machine: 3096px print height at 700dpi = 112.3mm, 3 heads × 37.4mm each
+// At MM_PX=3.2: HEAD_PX_H = 37.4mm × 3.2 = 120px (real), OVERLAP exaggerated to 6px for visibility
+const HEAD_PX_H  = 120;
+const OVERLAP_PX = 6;
+const NET_H      = HEAD_PX_H - OVERLAP_PX;   // 114
+const CAN_H      = NET_H * 2 + HEAD_PX_H;    // 348
+const CAN_W      = 268;  // shows ~84mm (40%) of 207mm can circumference
 const L_CAN_X    = 20;
 const R_CAN_X    = L_CAN_X + CAN_W + 30; // 30px gap between cans
 const CAN_TOP_Y  = 36;
 const MID_STAGGER_PX = 15;  // visual stagger in head bar view
 
 const HEAD_LABELS = ['P3','P2','P1'];  // index 0,1,2 → P3,P2,P1
+
+// ── ARTWORK ─────────────────────────────────────────────────
+// Pre-tinted offscreen canvases, one per ink channel.
+// ink=dark in source PNG → mapped to ink color on white bg for multiply blend.
+const artworkChannels = new Array(5).fill(null);
+
+function tintArtwork(img, r, g, b) {
+  const off = document.createElement('canvas');
+  off.width = img.naturalWidth; off.height = img.naturalHeight;
+  const octx = off.getContext('2d', { willReadFrequently: true });
+  octx.drawImage(img, 0, 0);
+  const idata = octx.getImageData(0, 0, off.width, off.height);
+  const px = idata.data;
+  for (let i = 0; i < px.length; i += 4) {
+    const lum = (px[i] + px[i+1] + px[i+2]) / 3;
+    const ink = 1 - lum / 255; // 0=no ink (white), 1=full ink (black)
+    px[i]   = Math.round(255 - (255 - r) * ink);
+    px[i+1] = Math.round(255 - (255 - g) * ink);
+    px[i+2] = Math.round(255 - (255 - b) * ink);
+    px[i+3] = 255;
+  }
+  octx.putImageData(idata, 0, 0);
+  return off;
+}
+
+function loadArtwork() {
+  const files = ['W','K','Y','M','C'];
+  files.forEach((ch, i) => {
+    const img = new Image();
+    img.onload = () => {
+      const [r,g,b] = INK[i];
+      artworkChannels[i] = tintArtwork(img, r, g, b);
+      renderAll();
+    };
+    img.src = `artwork/golden-mango/${ch}.png`;
+  });
+}
+// ─────────────────────────────────────────────────────────────
 
 function headBaseY(idx) { return idx * NET_H; }
 
@@ -568,8 +608,8 @@ function drawCanBg(ctx, cx) {
 // At zero offset they fully interleave (smooth). When P2 shifts via
 // midOffset or piezo the phases slide apart: double-covered rows go dark,
 // uncovered rows go white — visible banding/dashing at the seam.
-// NOZZLE_STRIPE=2 divides NET_H=56 into 28 stripes (even count), so with
-// opposite phases (top=0, bot=1) they perfectly interleave at zero offset.
+// NOZZLE_STRIPE=2 with NET_H=114: phases alternate every 2px row across the seam,
+// perfectly interleaving at zero offset regardless of NET_H parity.
 const NOZZLE_STRIPE = 2;
 
 function drawStripedZone(ctx, x, w, yFrom, yTo, refBy, phase) {
@@ -756,8 +796,29 @@ function drawRegText(ctx, chIdx, col) {
           ctx.lineTo(cxOff + Math.cos(a)*outer, cyOff + Math.sin(a)*outer);
         }
         ctx.stroke();
-        // small filled center dot
         ctx.beginPath(); ctx.arc(cxOff, cyOff, 5, 0, Math.PI*2); ctx.fill();
+        break;
+      }
+      case 'artwork': {
+        const imgCanvas = artworkChannels[chIdx];
+        if (!imgCanvas) {
+          // Fall back to letter while artwork loads
+          ctx.font = `900 ${fontSize}px Arial Black, Arial, sans-serif`;
+          ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText('R', cxOff, cyOff);
+          break;
+        }
+        const iw = imgCanvas.width, ih = imgCanvas.height;
+        // Scale image so its height fills the full print area (CAN_H)
+        // PNG is at 2× CAN_H so drawH = CAN_H, drawW preserves aspect
+        const drawH = CAN_H;
+        const drawW = iw * (CAN_H / ih);
+        // Center horizontally in the can; apply per-head horizontal offset
+        const imgX = cx + (CAN_W - drawW) / 2 + dx;
+        // Align top of image to top of print area; apply per-head vertical offset
+        const imgY = CAN_TOP_Y + hdy;
+        ctx.globalCompositeOperation = 'multiply';
+        ctx.drawImage(imgCanvas, imgX, imgY, drawW, drawH);
         break;
       }
     }
@@ -1308,6 +1369,7 @@ function buildToolBtns(){
     <button class="pat-btn" data-pat="grid">GRID</button>
     <button class="pat-btn" data-pat="target">TARGET</button>
     <button class="pat-btn" data-pat="burst">BURST</button>
+    <button class="pat-btn" data-pat="artwork">ARTWORK</button>
   </div>`;
 }
 
@@ -1480,6 +1542,7 @@ function init(){
   buildStationGrid();
   buildChLegend();
   initFocusBtns();
+  loadArtwork();
   window.addEventListener('resize',()=>{ clearTimeout(window._rsz); window._rsz=setTimeout(resize,60); });
   resize();
   requestAnimationFrame(tickPiezo);
