@@ -52,7 +52,13 @@ header h1 {
   text-transform: uppercase;
   white-space: nowrap;
   font-family: 'Courier New', monospace;
+  display: flex;
+  align-items: center;
+  gap: 10px;
 }
+#brand-logo { height: 30px; width: auto; display: block; }
+#brand-fallback { display: none; }
+#brand-sub { color: #666; font-size: 10px; letter-spacing: 1px; }
 #overall-score {
   padding: 3px 10px;
   border-radius: 3px;
@@ -466,6 +472,10 @@ footer {
   border-right: 7px solid transparent;
   border-bottom: 8px solid #0e1117;
 }
+#welcome-logo {
+  display: block; width: 150px; max-width: 100%; height: auto;
+  margin: 0 auto 14px;
+}
 #welcome-title {
   font-size: 13px; font-weight: bold; color: #e8e8e8;
   font-family: 'Courier New', monospace; margin-bottom: 8px;
@@ -664,7 +674,12 @@ footer {
 <body>
 
 <header>
-  <h1>&#9632; Canworks &mdash; Alignment Trainer</h1>
+  <h1>
+    <img id="brand-logo" src="logo.png" alt="Canworks"
+         onerror="this.style.display='none';document.getElementById('brand-fallback').style.display='inline';">
+    <span id="brand-fallback">&#9632; Canworks</span>
+    <span id="brand-sub">&mdash; Alignment Trainer</span>
+  </h1>
   <div id="quality-wrap">
     <span style="color:#777;font-size:12px;">QUALITY</span>
     <div id="overall-score">100%</div>
@@ -752,6 +767,7 @@ footer {
 <div id="welcome-overlay" style="display:none;">
   <div id="welcome-caret"></div>
   <div id="welcome-card">
+    <img id="welcome-logo" src="logo.png" alt="Canworks" onerror="this.style.display='none';">
     <div id="welcome-title">New here?</div>
     <div id="welcome-body">This trainer simulates a real Hinterkopf can press. The guided tutorial walks you through every control — from registration fields to the inspection loupe.</div>
     <div id="welcome-actions">
