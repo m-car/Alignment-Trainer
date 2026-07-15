@@ -1782,7 +1782,7 @@ function renderTopDown() {
       const rad=col===0?ch.radialL:ch.radialR;
       const xOff=(rad)*MM_PX;
       const angOff=(xOff/CAN_W)*Math.PI*2;
-      const ringR=R-3-chIdx*4;
+      const ringR=R-3-(4-chIdx)*4;  // W innermost → C outermost
       if(ringR<4) continue;
       tdCtx.save();
       tdCtx.strokeStyle=`rgba(${r},${g},${b},0.8)`;
