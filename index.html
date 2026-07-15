@@ -1094,8 +1094,8 @@ function getAluStreaks(w) {
     let b = Math.sin(x * 3.71 + 1.3) * 1234.567; b -= Math.floor(b);
     const d = (a * 0.7 + b * 0.3) - 0.5; // -0.5..0.5
     const i = x * 4;
-    if (d >= 0) { id.data[i] = id.data[i+1] = id.data[i+2] = 255; id.data[i+3] = Math.round(d * 20); }
-    else        { id.data[i] = id.data[i+1] = id.data[i+2] = 0;   id.data[i+3] = Math.round(-d * 24); }
+    if (d >= 0) { id.data[i] = id.data[i+1] = id.data[i+2] = 255; id.data[i+3] = Math.round(d * 10); }
+    else        { id.data[i] = id.data[i+1] = id.data[i+2] = 0;   id.data[i+3] = Math.round(-d * 12); }
   }
   sctx.putImageData(id, 0, 0);
   _aluStreakCache[w] = c;
@@ -1130,9 +1130,16 @@ function drawCanBg(ctx, cx) {
   ctx.imageSmoothingEnabled = prevSmooth;
   ctx.restore();
 
+  // Reflections are drawn in a frame tilted ~30° so the sheen runs diagonally,
+  // as if the studio light hits the can at an angle.
+  const reflCX = cx + CAN_W / 2, reflCY = activeY + PRINT_H / 2;
+  const reflDiag = Math.hypot(CAN_W, PRINT_H);
+  const reflX0 = -reflDiag / 2;
+  const REFL_ANGLE = -30 * Math.PI / 180;
+
   // Specular reflection — a tight primary highlight plus a weaker secondary,
   // the way polished aluminum catches studio lighting.
-  const hi = ctx.createLinearGradient(cx, 0, cx + CAN_W, 0);
+  const hi = ctx.createLinearGradient(reflX0, 0, reflX0 + reflDiag, 0);
   hi.addColorStop(0,    'rgba(255,255,255,0)');
   hi.addColorStop(0.44, 'rgba(255,255,255,0)');
   hi.addColorStop(0.50, 'rgba(255,255,255,0.55)');
@@ -1140,10 +1147,14 @@ function drawCanBg(ctx, cx) {
   hi.addColorStop(0.74, 'rgba(255,255,255,0)');
   hi.addColorStop(0.80, 'rgba(255,255,255,0.18)');
   hi.addColorStop(0.86, 'rgba(255,255,255,0)');
+  ctx.save();
+  ctx.beginPath(); ctx.rect(cx, activeY, CAN_W, PRINT_H); ctx.clip();
+  ctx.translate(reflCX, reflCY); ctx.rotate(REFL_ANGLE);
   ctx.fillStyle = hi;
-  ctx.fillRect(cx, activeY, CAN_W, PRINT_H);
+  ctx.fillRect(reflX0, -reflDiag / 2, reflDiag, reflDiag);
+  ctx.restore();
 
-  // Fresnel edge rims — grazing angles at the cylinder edges brighten
+  // Fresnel edge rims — grazing angles at the cylinder edges brighten (kept vertical)
   const edgeW = CAN_W * 0.10;
   const gl = ctx.createLinearGradient(cx, 0, cx + edgeW, 0);
   gl.addColorStop(0, 'rgba(245,248,252,0.55)'); gl.addColorStop(1, 'rgba(245,248,252,0)');
@@ -1152,16 +1163,17 @@ function drawCanBg(ctx, cx) {
   gr.addColorStop(0, 'rgba(245,248,252,0.55)'); gr.addColorStop(1, 'rgba(245,248,252,0)');
   ctx.fillStyle = gr; ctx.fillRect(cx + CAN_W - edgeW, activeY, edgeW, PRINT_H);
 
-  // Animated glint — a soft sheen sweeping across as if the can turns under lights
+  // Animated glint — a soft diagonal sheen sweeping across as the can turns
   if (S.glint && glintPos > -0.5) {
-    const gx = cx + CAN_W * glintPos, gw = CAN_W * 0.16;
+    const gx = reflX0 + reflDiag * glintPos, gw = reflDiag * 0.13;
     const sg = ctx.createLinearGradient(gx - gw, 0, gx + gw, 0);
     sg.addColorStop(0,   'rgba(255,255,255,0)');
     sg.addColorStop(0.5, 'rgba(255,255,255,0.24)');
     sg.addColorStop(1,   'rgba(255,255,255,0)');
     ctx.save();
     ctx.beginPath(); ctx.rect(cx, activeY, CAN_W, PRINT_H); ctx.clip();
-    ctx.fillStyle = sg; ctx.fillRect(gx - gw, activeY, gw * 2, PRINT_H);
+    ctx.translate(reflCX, reflCY); ctx.rotate(REFL_ANGLE);
+    ctx.fillStyle = sg; ctx.fillRect(gx - gw, -reflDiag / 2, gw * 2, reflDiag);
     ctx.restore();
   }
 
