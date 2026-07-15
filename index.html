@@ -352,7 +352,7 @@ button.tool-btn:hover { border-color: var(--accent); color: var(--accent); }
   display: flex; flex-direction: column;
   overflow: hidden; gap: 1px;
 }
-#headbar-canvas, #topdown-canvas, #seam-zoom-canvas { display: block; flex-shrink: 0; }
+#headbar-canvas, #topdown-canvas { display: block; flex-shrink: 0; }
 
 /* ── FOOTER ──────────────────────── */
 footer {
@@ -363,34 +363,6 @@ footer {
 }
 #status { color: var(--dim); margin-left: auto; }
 
-/* ── SEAM ZOOM MODAL ─────────────── */
-#seam-modal {
-  display: none;
-  position: fixed; top: 50%; left: 50%;
-  transform: translate(-50%, -50%);
-  width: 540px; height: 620px;
-  background: #0a0a0a;
-  border: 1px solid #333;
-  border-radius: 4px;
-  z-index: 1000;
-  box-shadow: 0 0 80px rgba(0,0,0,0.95), 0 0 0 1px rgba(88,166,255,0.15);
-  flex-direction: column;
-}
-#seam-modal.open { display: flex; }
-#seam-modal-canvas { flex: 1; display: block; width: 100%; min-height: 0; }
-.modal-hdr {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 5px 8px 5px 10px; border-bottom: 1px solid #1e1e1e;
-  flex-shrink: 0;
-  font-size: 10px; color: #666; text-transform: uppercase;
-  letter-spacing: 1px; font-family: 'Courier New', monospace; background: #080808;
-}
-.modal-close-btn {
-  background: none; border: 1px solid #333; color: #666; cursor: pointer;
-  font-size: 10px; padding: 2px 8px; border-radius: 2px;
-  font-family: 'Courier New', monospace; transition: all 0.1s;
-}
-.modal-close-btn:hover { border-color: var(--bad); color: var(--bad); }
 
 /* ── WELCOME OVERLAY ─────────────── */
 #welcome-overlay {
@@ -650,11 +622,6 @@ footer {
     <canvas id="headbar-canvas"></canvas>
     <div class="plabel">TOP-DOWN &mdash; RADIAL REG.</div>
     <canvas id="topdown-canvas"></canvas>
-    <div class="plabel" style="display:flex;align-items:center;justify-content:space-between;padding-right:5px;">
-      <span>SEAM ZOOM</span>
-      <button id="btn-seam-popup" class="focus-btn" style="padding:1px 7px;font-size:9px;">POPUP ↗</button>
-    </div>
-    <canvas id="seam-zoom-canvas"></canvas>
   </div>
 
 </div>
@@ -694,13 +661,6 @@ footer {
   </div>
 </div>
 
-<div id="seam-modal">
-  <div class="modal-hdr">
-    <span>SEAM ZOOM &mdash; P4/P5 NOZZLE INTERLEAVE</span>
-    <button class="modal-close-btn" id="btn-seam-close">✕ CLOSE</button>
-  </div>
-  <canvas id="seam-modal-canvas"></canvas>
-</div>
 
 <script>
 // ════════════════════════════════════════════════════════════
@@ -773,7 +733,6 @@ let loupePos    = null;   // {x,y} in uCanvas element px, or null
 let loupeActive = false;
 const LOUPE_R   = 130;    // loupe radius in screen px
 const LOUPE_Z   = 5;      // magnification factor
-let seamModalOpen  = false;
 let loupeSnapCanvas = null; // offscreen snapshot taken before overlay is drawn
 
 // ════════════════════════════════════════════════════════════
@@ -785,8 +744,6 @@ const hbCanvas = document.getElementById('headbar-canvas');
 const hbCtx    = hbCanvas.getContext('2d');
 const tdCanvas = document.getElementById('topdown-canvas');
 const tdCtx    = tdCanvas.getContext('2d');
-const szCanvas = document.getElementById('seam-zoom-canvas');
-const szCtx    = szCanvas.getContext('2d');
 
 // ════════════════════════════════════════════════════════════
 // GEOMETRY
@@ -1628,138 +1585,9 @@ function updateQuality(){
                   '✗ Significant misalignment';
 }
 
-// ════════════════════════════════════════════════════════════
-// RENDER — SEAM ZOOM
-// Magnified cross-section of the P1/P2 nozzle interleave zone.
-// Shows which rows each head fires, gaps (red) and overlaps (yellow).
-// ════════════════════════════════════════════════════════════
-function renderSeamZoomTo(canvas, ctx) {
-  const W = canvas.width, H = canvas.height;
-  ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = '#080808';
-  ctx.fillRect(0, 0, W, H);
-  if (W < 20 || H < 40) return;
-
-  const chIdx = S.selCh >= 0 ? S.selCh : 1;
-  const col   = S.focusSide === 1 ? 1 : 0;
-  const [r, g, b] = INK[chIdx];
-
-  const p2 = headParams(chIdx, col, 1);
-  const p1 = headParams(chIdx, col, 2);
-
-  // RefBy values matching drawBand: P2 uses p2.by+NET_H, P1 uses p1.by
-  const refBy_P2 = p2.by + NET_H;
-  const refBy_P1 = p1.by;
-
-  const nomSeamY = CAN_TOP_Y + headBaseY(2);
-
-  const SHOW     = 14;
-  const TITLE_H  = 18;
-  const LEGEND_H = 18;
-  const availH   = H - TITLE_H - LEGEND_H - 4;
-  const rowPx    = Math.max(3, Math.floor(availH / (SHOW * 2)));
-  const totalDrawH = rowPx * SHOW * 2;
-  const startCanY  = TITLE_H + Math.round((availH - totalDrawH) / 2);
-
-  const lblW = 28;
-  const barX = lblW;
-  const barW = W - lblW * 2;
-
-  const chanName = S.selCh >= 0 ? CH_KEYS[S.selCh] : 'K';
-  const sideName = col === 0 ? 'LEFT CAN' : 'RIGHT CAN';
-  ctx.fillStyle = '#555';
-  ctx.font = '9px Courier New';
-  ctx.textAlign = 'center';
-  ctx.fillText(`P4/P5 SEAM  ·  ${chanName} CHANNEL  ·  ${sideName}`, W / 2, TITLE_H - 4);
-
-  for (let ri = -SHOW; ri < SHOW; ri++) {
-    const y     = nomSeamY + ri;
-    const drawY = startCanY + (ri + SHOW) * rowPx;
-    const rowH  = rowPx - (rowPx > 4 ? 1 : 0);
-
-    const inP2 = y >= p2.by && y < p2.by + HEAD_PX_H;
-    const inP1 = y >= p1.by && y < p1.by + HEAD_PX_H;
-
-    let p2Fires = false, p1Fires = false;
-    if (inP2 && inP1) {
-      const ph2 = ((Math.floor((y - refBy_P2) / NOZZLE_STRIPE) % 2) + 2) % 2;
-      const ph1 = ((Math.floor((y - refBy_P1) / NOZZLE_STRIPE) % 2) + 2) % 2;
-      p2Fires = ph2 === 0;
-      p1Fires = ph1 === 1;
-    } else {
-      p2Fires = inP2;
-      p1Fires = inP1;
-    }
-
-    const inSeam = inP2 && inP1;
-    let fill;
-    if (p2Fires && p1Fires)       fill = `rgba(255,210,40,0.80)`;
-    else if (!p2Fires && !p1Fires) fill = `rgba(210,40,40,0.40)`;
-    else if (p2Fires)  fill = inSeam ? `rgba(${r},${g},${b},0.92)` : `rgba(${r},${g},${b},0.28)`;
-    else               fill = inSeam ? `rgba(${r},${g},${b},0.92)` : `rgba(${r},${g},${b},0.28)`;
-
-    ctx.fillStyle = fill;
-    ctx.fillRect(barX, drawY, barW, rowH);
-
-    // Orange seam-zone bracket on left & right edges
-    if (inSeam) {
-      ctx.fillStyle = 'rgba(245,166,35,0.6)';
-      ctx.fillRect(2, drawY, 4, rowH);
-      ctx.fillRect(W - 6, drawY, 4, rowH);
-    }
-
-    // Row labels
-    if (ri % 2 === 0 || rowPx >= 8) {
-      const fs = rowPx >= 8 ? '9px' : '7px';
-      ctx.font = `${fs} Courier New`;
-      if (inP2 && !inP1) {
-        ctx.fillStyle = '#3a6a9a'; ctx.textAlign = 'right';
-        ctx.fillText('P5', barX - 3, drawY + rowPx / 2 + 3);
-      }
-      if (inP1 && !inP2) {
-        ctx.fillStyle = '#7a3a3a'; ctx.textAlign = 'left';
-        ctx.fillText('P4', barX + barW + 3, drawY + rowPx / 2 + 3);
-      }
-      ctx.fillStyle = '#2e2e2e'; ctx.textAlign = 'right';
-      ctx.fillText((ri >= 0 ? '+' : '') + ri, lblW - 5, drawY + rowPx / 2 + 3);
-    }
-  }
-
-  // Nominal seam line
-  const seamDrawY = startCanY + SHOW * rowPx;
-  ctx.save();
-  ctx.strokeStyle = '#f5a623'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
-  ctx.beginPath(); ctx.moveTo(barX, seamDrawY); ctx.lineTo(barX + barW, seamDrawY); ctx.stroke();
-  ctx.restore();
-  ctx.fillStyle = '#f5a623'; ctx.font = '8px Courier New'; ctx.textAlign = 'left';
-  ctx.fillText('seam', barX + 3, seamDrawY - 3);
-
-  // Legend
-  const legY = H - 6;
-  const items = [
-    [`rgba(${r},${g},${b},0.92)`, 'fires (seam)'],
-    [`rgba(${r},${g},${b},0.28)`, 'solid zone'],
-    ['rgba(210,40,40,0.5)',        'gap'],
-    ['rgba(255,210,40,0.80)',      'overlap'],
-  ];
-  let lx = barX;
-  ctx.font = '8px Courier New';
-  items.forEach(([c, label]) => {
-    ctx.fillStyle = c; ctx.fillRect(lx, legY - 8, 9, 8);
-    ctx.fillStyle = '#555'; ctx.textAlign = 'left';
-    ctx.fillText(label, lx + 12, legY);
-    lx += label.length * 4.8 + 18;
-  });
-}
-
-function renderSeamZoom() { renderSeamZoomTo(szCanvas, szCtx); }
 
 function renderAll(){
-  renderUnrolled(); renderHeadBar(); renderTopDown(); renderSeamZoom(); updateQuality();
-  if (seamModalOpen) {
-    const mc = document.getElementById('seam-modal-canvas');
-    renderSeamZoomTo(mc, mc.getContext('2d'));
-  }
+  renderUnrolled(); renderHeadBar(); renderTopDown(); updateQuality();
   if(S.selCh>=0) refreshRegDisplays();
 }
 
@@ -2139,8 +1967,6 @@ function resize(){
   hbCanvas.height=Math.floor(rp.clientHeight*0.38)-20;
   tdCanvas.width=rp.clientWidth;
   tdCanvas.height=Math.floor(rp.clientHeight*0.28)-20;
-  szCanvas.width=rp.clientWidth;
-  szCanvas.height=Math.floor(rp.clientHeight*0.34)-20;
   renderAll();
 }
 
@@ -2191,20 +2017,6 @@ function initFocusBtns() {
   });
 }
 
-function openSeamModal() {
-  seamModalOpen = true;
-  const modal = document.getElementById('seam-modal');
-  modal.classList.add('open');
-  const mc = document.getElementById('seam-modal-canvas');
-  mc.width  = modal.clientWidth;
-  mc.height = modal.clientHeight - 34; // minus modal header
-  renderSeamZoomTo(mc, mc.getContext('2d'));
-}
-
-function closeSeamModal() {
-  seamModalOpen = false;
-  document.getElementById('seam-modal').classList.remove('open');
-}
 
 function init(){
   buildStationGrid();
@@ -2235,13 +2047,6 @@ function init(){
     if (loupeActive) renderUnrolled();
   });
 
-  // ── Seam zoom popup ─────────────────────────────────────────
-  document.getElementById('btn-seam-popup').addEventListener('click', openSeamModal);
-  document.getElementById('btn-seam-close').addEventListener('click', closeSeamModal);
-  // Click outside modal to close
-  document.getElementById('seam-modal').addEventListener('click', e => {
-    if (e.target === document.getElementById('seam-modal')) closeSeamModal();
-  });
 
   // ── Tutorial ─────────────────────────────────────────────────
   initTutorial();
@@ -2317,7 +2122,7 @@ const TUTORIAL_STEPS = [
   {
     getTarget: () => tutFindRow(7),
     title: 'Field 7 — Middle Head Offset R',
-    body: 'Same middle-head independent offset but for the <strong style="color:#e0e0e0">RIGHT CAN / P2 head</strong>.<br><br>Watch the Seam Zoom panel while adjusting — it shows the nozzle interleave changing in real time.',
+    body: 'Same middle-head independent offset but for the <strong style="color:#e0e0e0">RIGHT CAN / P2 head</strong>.<br><br>Watch the unrolled canvas while adjusting — banding at the overlap zone will shift in real time.',
     action: () => { if (S.selCh < 0) selectStation(1); },
   },
   // 10 ── Field 9 — Piezo
@@ -2375,13 +2180,7 @@ const TUTORIAL_STEPS = [
     title: 'Top-Down Radial View',
     body: 'Looking down the can axis. Each ink channel appears as a coloured arc — a perfectly registered press shows all arcs aligned at the same angle.<br><br>Arc offset = radial misalignment. The gap at the top is the seam reference point.',
   },
-  // 19 ── Seam Zoom
-  {
-    getTarget: () => document.querySelector('#seam-zoom-canvas'),
-    title: 'Seam Zoom — Nozzle Interleave',
-    body: 'Cross-section of the ±14 rows where the bottom and middle heads overlap. Each row is either fired by one head or the other — never both at perfect alignment.<br><br><strong style="color:#58a6ff">Vibrant</strong> = firing. <strong style="color:#f85149">Red</strong> = gap. <strong style="color:#d29922">Yellow</strong> = double hit. Click <strong style="color:#e0e0e0">POPUP ↗</strong> for a full-size view.',
-  },
-  // 20 ── Live Exercise
+  // 19 ── Live Exercise
   {
     getTarget: () => null,
     title: 'Live Training Exercise',
