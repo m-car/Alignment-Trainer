@@ -489,7 +489,7 @@ const HEAD_PX_H  = 120;
 const OVERLAP_PX = 6;
 const NET_H      = HEAD_PX_H - OVERLAP_PX;   // 114
 const CAN_H      = NET_H * 2 + HEAD_PX_H;    // 348
-const CAN_W      = 268;  // shows ~84mm (40%) of 207mm can circumference
+const CAN_W      = 663;  // full can circumference: π×66mm × 3.2px/mm = 207.3mm × 3.2 ≈ 663px
 const L_CAN_X    = 20;
 const R_CAN_X    = L_CAN_X + CAN_W + 30; // 30px gap between cans
 const CAN_TOP_Y  = 36;
@@ -808,17 +808,11 @@ function drawRegText(ctx, chIdx, col) {
           ctx.fillText('R', cxOff, cyOff);
           break;
         }
-        const iw = imgCanvas.width, ih = imgCanvas.height;
-        // Scale image so its height fills the full print area (CAN_H)
-        // PNG is at 2× CAN_H so drawH = CAN_H, drawW preserves aspect
-        const drawH = CAN_H;
-        const drawW = iw * (CAN_H / ih);
-        // Center horizontally in the can; apply per-head horizontal offset
-        const imgX = cx + (CAN_W - drawW) / 2 + dx;
-        // Align top of image to top of print area; apply per-head vertical offset
+        // Stretch artwork to fill the full can area (CAN_W × CAN_H)
+        const imgX = cx + dx;
         const imgY = CAN_TOP_Y + hdy;
         ctx.globalCompositeOperation = 'multiply';
-        ctx.drawImage(imgCanvas, imgX, imgY, drawW, drawH);
+        ctx.drawImage(imgCanvas, imgX, imgY, CAN_W, CAN_H);
         break;
       }
     }
