@@ -344,7 +344,7 @@ button.tool-btn:hover { border-color: var(--accent); color: var(--accent); }
   display: flex; flex-direction: column;
   overflow: hidden; gap: 1px;
 }
-#headbar-canvas, #topdown-canvas { display: block; flex-shrink: 0; }
+#headbar-canvas, #topdown-canvas, #seam-zoom-canvas { display: block; flex-shrink: 0; }
 
 /* ── FOOTER ──────────────────────── */
 footer {
@@ -421,6 +421,8 @@ footer {
     <canvas id="headbar-canvas"></canvas>
     <div class="plabel">TOP-DOWN &mdash; RADIAL REG.</div>
     <canvas id="topdown-canvas"></canvas>
+    <div class="plabel">SEAM ZOOM &mdash; NOZZLE INTERLEAVE</div>
+    <canvas id="seam-zoom-canvas"></canvas>
   </div>
 
 </div>
@@ -503,6 +505,8 @@ const hbCanvas = document.getElementById('headbar-canvas');
 const hbCtx    = hbCanvas.getContext('2d');
 const tdCanvas = document.getElementById('topdown-canvas');
 const tdCtx    = tdCanvas.getContext('2d');
+const szCanvas = document.getElementById('seam-zoom-canvas');
+const szCtx    = szCanvas.getContext('2d');
 
 // ════════════════════════════════════════════════════════════
 // GEOMETRY
@@ -1250,8 +1254,132 @@ function updateQuality(){
                   '✗ Significant misalignment';
 }
 
+// ════════════════════════════════════════════════════════════
+// RENDER — SEAM ZOOM
+// Magnified cross-section of the P1/P2 nozzle interleave zone.
+// Shows which rows each head fires, gaps (red) and overlaps (yellow).
+// ════════════════════════════════════════════════════════════
+function renderSeamZoom() {
+  const W = szCanvas.width, H = szCanvas.height;
+  szCtx.clearRect(0, 0, W, H);
+  szCtx.fillStyle = '#080808';
+  szCtx.fillRect(0, 0, W, H);
+  if (W < 20 || H < 40) return;
+
+  const chIdx = S.selCh >= 0 ? S.selCh : 1;
+  const col   = S.focusSide === 1 ? 1 : 0;
+  const [r, g, b] = INK[chIdx];
+
+  const p2 = headParams(chIdx, col, 1);
+  const p1 = headParams(chIdx, col, 2);
+
+  // RefBy values matching drawBand: P2 uses p2.by+NET_H, P1 uses p1.by
+  const refBy_P2 = p2.by + NET_H;
+  const refBy_P1 = p1.by;
+
+  const nomSeamY = CAN_TOP_Y + headBaseY(2);
+
+  const SHOW     = 14;
+  const TITLE_H  = 16;
+  const LEGEND_H = 14;
+  const availH   = H - TITLE_H - LEGEND_H - 4;
+  const rowPx    = Math.max(3, Math.floor(availH / (SHOW * 2)));
+  const totalDrawH = rowPx * SHOW * 2;
+  const startCanY  = TITLE_H + Math.round((availH - totalDrawH) / 2);
+
+  const lblW = 22;
+  const barX = lblW;
+  const barW = W - lblW * 2;
+
+  const chanName = S.selCh >= 0 ? CH_KEYS[S.selCh] : 'K';
+  const sideName = col === 0 ? 'CAN1' : 'CAN2';
+  szCtx.fillStyle = '#444';
+  szCtx.font = '8px Courier New';
+  szCtx.textAlign = 'center';
+  szCtx.fillText(`P1/P2 SEAM · ${chanName} · ${sideName}`, W / 2, TITLE_H - 3);
+
+  for (let ri = -SHOW; ri < SHOW; ri++) {
+    const y     = nomSeamY + ri;
+    const drawY = startCanY + (ri + SHOW) * rowPx;
+    const rowH  = rowPx - (rowPx > 4 ? 1 : 0);
+
+    const inP2 = y >= p2.by && y < p2.by + HEAD_PX_H;
+    const inP1 = y >= p1.by && y < p1.by + HEAD_PX_H;
+
+    let p2Fires = false, p1Fires = false;
+    if (inP2 && inP1) {
+      const ph2 = ((Math.floor((y - refBy_P2) / NOZZLE_STRIPE) % 2) + 2) % 2;
+      const ph1 = ((Math.floor((y - refBy_P1) / NOZZLE_STRIPE) % 2) + 2) % 2;
+      p2Fires = ph2 === 0;
+      p1Fires = ph1 === 1;
+    } else {
+      p2Fires = inP2;
+      p1Fires = inP1;
+    }
+
+    const inSeam = inP2 && inP1;
+    let fill;
+    if (p2Fires && p1Fires)  fill = `rgba(255,210,40,0.75)`;
+    else if (!p2Fires && !p1Fires) fill = `rgba(210,40,40,0.35)`;
+    else if (p2Fires) fill = inSeam ? `rgba(${r},${g},${b},0.92)` : `rgba(${r},${g},${b},0.28)`;
+    else              fill = inSeam ? `rgba(${r},${g},${b},0.92)` : `rgba(${r},${g},${b},0.28)`;
+
+    szCtx.fillStyle = fill;
+    szCtx.fillRect(barX, drawY, barW, rowH);
+
+    // Orange seam-zone bracket on left & right edges
+    if (inSeam) {
+      szCtx.fillStyle = 'rgba(245,166,35,0.55)';
+      szCtx.fillRect(2, drawY, 3, rowH);
+      szCtx.fillRect(W - 5, drawY, 3, rowH);
+    }
+
+    // Head zone labels (every other row, outside seam)
+    if (ri % 2 === 0) {
+      szCtx.font = '7px Courier New';
+      if (inP2 && !inP1) {
+        szCtx.fillStyle = '#3a5a7a'; szCtx.textAlign = 'right';
+        szCtx.fillText('P2', barX - 2, drawY + rowPx / 2 + 2);
+      }
+      if (inP1 && !inP2) {
+        szCtx.fillStyle = '#5a3a3a'; szCtx.textAlign = 'left';
+        szCtx.fillText('P1', barX + barW + 2, drawY + rowPx / 2 + 2);
+      }
+      // Row offset tick
+      szCtx.fillStyle = '#2a2a2a'; szCtx.textAlign = 'right';
+      szCtx.fillText((ri >= 0 ? '+' : '') + ri, lblW - 6, drawY + rowPx / 2 + 2);
+    }
+  }
+
+  // Nominal seam line
+  const seamDrawY = startCanY + SHOW * rowPx;
+  szCtx.save();
+  szCtx.strokeStyle = '#f5a623'; szCtx.lineWidth = 1; szCtx.setLineDash([4, 3]);
+  szCtx.beginPath(); szCtx.moveTo(barX, seamDrawY); szCtx.lineTo(barX + barW, seamDrawY); szCtx.stroke();
+  szCtx.restore();
+  szCtx.fillStyle = '#f5a623'; szCtx.font = '7px Courier New'; szCtx.textAlign = 'left';
+  szCtx.fillText('seam', barX + 2, seamDrawY - 2);
+
+  // Legend
+  const legY = H - LEGEND_H + 9;
+  const items = [
+    [`rgba(${r},${g},${b},0.92)`, 'fires'],
+    [`rgba(${r},${g},${b},0.28)`, 'solid'],
+    ['rgba(210,40,40,0.4)',        'gap'],
+    ['rgba(255,210,40,0.75)',      'overlap'],
+  ];
+  let lx = barX;
+  szCtx.font = '7px Courier New';
+  items.forEach(([c, label]) => {
+    szCtx.fillStyle = c; szCtx.fillRect(lx, legY - 6, 8, 7);
+    szCtx.fillStyle = '#444'; szCtx.textAlign = 'left';
+    szCtx.fillText(label, lx + 10, legY);
+    lx += label.length * 4.4 + 16;
+  });
+}
+
 function renderAll(){
-  renderUnrolled(); renderHeadBar(); renderTopDown(); updateQuality();
+  renderUnrolled(); renderHeadBar(); renderTopDown(); renderSeamZoom(); updateQuality();
   if(S.selCh>=0) refreshRegDisplays();
 }
 
@@ -1612,9 +1740,11 @@ function resize(){
   uCanvas.width=vp.clientWidth;
   uCanvas.height=vp.clientHeight-(leg?leg.offsetHeight:0)-20;
   hbCanvas.width=rp.clientWidth;
-  hbCanvas.height=Math.floor(rp.clientHeight*0.55)-20;
+  hbCanvas.height=Math.floor(rp.clientHeight*0.38)-20;
   tdCanvas.width=rp.clientWidth;
-  tdCanvas.height=Math.floor(rp.clientHeight*0.45)-20;
+  tdCanvas.height=Math.floor(rp.clientHeight*0.28)-20;
+  szCanvas.width=rp.clientWidth;
+  szCanvas.height=Math.floor(rp.clientHeight*0.34)-20;
   renderAll();
 }
 
