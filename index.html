@@ -118,8 +118,8 @@ header h1 {
 }
 .st-icon:hover { background: rgba(255,255,255,0.04); }
 .st-icon.active { border-color: #fff; background: rgba(255,255,255,0.06); }
-.st-icon.pinning, .st-icon.uv { cursor: default; opacity: 0.55; }
-.st-icon.pinning:hover, .st-icon.uv:hover { background: none; }
+.st-icon.pinning { cursor: default; opacity: 0.55; }
+.st-icon.pinning:hover { background: none; }
 
 .si-name {
   font-size: 8px; text-align: center;
@@ -679,7 +679,6 @@ footer {
 // STATIONS
 // ════════════════════════════════════════════════════════════
 const STATIONS = [
-  { num:  4,   type: 'uv',      name: 'UV COAT',    cssColor: '#556',    chIdx: -1 },
   { num:  5,   type: 'ink',     name: 'WHITE',      cssColor: '#e0e0e0', chIdx:  0 },
   { num:  6,   type: 'pinning', name: 'PINNING',    cssColor: '#555',    chIdx: -1 },
   { num:  7,   type: 'ink',     name: 'BLACK',      cssColor: '#999',    chIdx:  1 },
@@ -1626,8 +1625,8 @@ function buildStationGrid(){
       <div class="si-nozzles" style="border-color:#555;">
         <div class="si-dot"></div><div class="si-dot"></div>
       </div>`;
-    } else if(st.type==='pinning'||st.type==='uv'){
-      const uc=st.type==='uv'?'#6666aa':'#555';
+    } else if(st.type==='pinning'){
+      const uc='#555';
       bodyHTML=`<div class="si-cable"></div>
       <div class="si-body" style="border-color:${uc};">
         <div class="si-top-fill"></div>
@@ -1663,11 +1662,11 @@ function buildStationGrid(){
 // ════════════════════════════════════════════════════════════
 // SETTINGS REGISTER PANEL
 // ════════════════════════════════════════════════════════════
-function selectStation(stIdx){
+function selectStation(stIdx, isolate=true){
   S.selSt=stIdx; S.selCh=STATIONS[stIdx].chIdx;
   document.querySelectorAll('.st-icon').forEach((el,i)=>el.classList.toggle('active',i===stIdx));
   // Isolate selected color + black so the learner sees only the relevant channels
-  if (S.selCh >= 0) {
+  if (isolate && S.selCh >= 0) {
     const kIdx = CH_KEYS.indexOf('K');
     S.chVisible = CH_KEYS.map((_, i) => i === S.selCh || i === kIdx);
     buildChLegend();
@@ -1754,8 +1753,7 @@ function buildRegPanel(){
   }
 
   if(chIdx<0){
-    const desc=st.type==='pinning'?'UV pinning station — cures ink between passes.<br>No alignment controls on this station.':
-                                    'UV coating station.<br>No alignment controls on this station.';
+    const desc='UV pinning station — cures ink between passes.<br>No alignment controls on this station.';
     body.innerHTML=`<div class="no-ctrl-msg">${desc}</div>`;
     return;
   }
@@ -2052,7 +2050,7 @@ function init(){
   window.addEventListener('resize',()=>{ clearTimeout(window._rsz); window._rsz=setTimeout(resize,60); });
   resize();
   requestAnimationFrame(tickPiezo);
-  selectStation(1); // default: WHITE (station 5)
+  selectStation(0, false); // default: WHITE (station 5), no channel isolation on launch
 
   // ── Quality toggle ──────────────────────────────────────────
   const qWrap = document.getElementById('quality-wrap');
@@ -2108,63 +2106,63 @@ const TUTORIAL_STEPS = [
   {
     getTarget: () => document.querySelector('#station-grid'),
     title: 'Ink Station Grid',
-    body: 'Each icon is a physical station on the press. Click any <strong style="color:#e0e0e0">ink station</strong> — White, Black, Yellow, Magenta, or Cyan — to select that channel and unlock its registration controls.<br><br>UV coat and pinning stations have no alignment settings.',
+    body: 'Each icon is a physical station on the press. Click any <strong style="color:#e0e0e0">ink station</strong> — White, Black, Yellow, Magenta, or Cyan — to select that channel and unlock its registration controls.<br><br>Pinning and spot-lacquer stations have no alignment settings.',
   },
   // 3 ── Settings Register header
   {
     getTarget: () => document.querySelector('#reg-header'),
     title: 'Settings Register',
     body: 'Once a station is selected, the register panel shows its ID and name. Field numbers match the real machine HMI so operators can cross-reference directly.',
-    action: () => { if (S.selCh < 0) selectStation(1); },
+    action: () => { if (S.selCh < 0) selectStation(0); },
   },
   // 4 ── Field 2 — Global Axial
   {
     getTarget: () => tutFindRow(2),
     title: 'Field 2 — Axial Shift All Colours',
     body: 'A <strong style="color:#e0e0e0">global correction</strong> — shifts all five ink channels up or down together. Use this first to rough-in the vertical position before fine-tuning individual channels.<br><br>Use the ▲▼ arrows to adjust in 0.25 mm steps.',
-    action: () => { if (S.selCh < 0) selectStation(1); },
+    action: () => { if (S.selCh < 0) selectStation(0); },
   },
   // 5 ── Field 3 — Per-channel Axial
   {
     getTarget: () => tutFindRow(3),
     title: 'Field 3 — Axial Shift (Per Channel)',
     body: 'Fine-tunes <strong style="color:#e0e0e0">this colour\'s</strong> vertical position independently of the others. Positive = shifts toward the bottom of the can.<br><br>Adjust after the global axial (Field 2) is set.',
-    action: () => { if (S.selCh < 0) selectStation(1); },
+    action: () => { if (S.selCh < 0) selectStation(0); },
   },
   // 6 ── Field 4 — Radial L
   {
     getTarget: () => tutFindRow(4),
     title: 'Field 4 — Radial Shift L (LEFT CAN)',
     body: 'Shifts this colour around the can circumference on the <strong style="color:#e0e0e0">LEFT CAN / SPL mandrel</strong>. Positive = shifts right.<br><br>Does not affect the RIGHT CAN — each mandrel is adjusted independently.',
-    action: () => { if (S.selCh < 0) selectStation(1); },
+    action: () => { if (S.selCh < 0) selectStation(0); },
   },
   // 7 ── Field 5 — Radial R
   {
     getTarget: () => tutFindRow(5),
     title: 'Field 5 — Radial Shift R (RIGHT CAN)',
     body: 'Same as Field 4 but for the <strong style="color:#e0e0e0">RIGHT CAN / SPR mandrel</strong>.<br><br>It\'s common for the two mandrels to need slightly different radial values due to mechanical tolerances.',
-    action: () => { if (S.selCh < 0) selectStation(1); },
+    action: () => { if (S.selCh < 0) selectStation(0); },
   },
   // 8 ── Field 6 — Mid Offset L
   {
     getTarget: () => tutFindRow(6),
     title: 'Field 6 — Middle Head Offset L',
     body: 'The middle printhead (P5 on the left stack) can shift <strong style="color:#e0e0e0">independently</strong> of the top and bottom heads. This offsets P5 radially on the LEFT CAN only.<br><br>Useful for correcting the seam at the P4/P5 overlap zone.',
-    action: () => { if (S.selCh < 0) selectStation(1); },
+    action: () => { if (S.selCh < 0) selectStation(0); },
   },
   // 9 ── Field 7 — Mid Offset R
   {
     getTarget: () => tutFindRow(7),
     title: 'Field 7 — Middle Head Offset R',
     body: 'Same middle-head independent offset but for the <strong style="color:#e0e0e0">RIGHT CAN / P2 head</strong>.<br><br>Watch the unrolled canvas while adjusting — banding at the overlap zone will shift in real time.',
-    action: () => { if (S.selCh < 0) selectStation(1); },
+    action: () => { if (S.selCh < 0) selectStation(0); },
   },
   // 10 ── Field 9 — Piezo
   {
     getTarget: () => tutFindRow(9),
     title: 'Fields 9 & 11 — Piezo Fine Tune',
     body: 'The <strong style="color:#e0e0e0">piezo actuator</strong> moves the middle head axially with micron-level precision. Set your target position here — the head animates to it.<br><br>Fields 8 & 10 show the live current position as the actuator moves (read-only, no arrows).',
-    action: () => { if (S.selCh < 0) selectStation(1); },
+    action: () => { if (S.selCh < 0) selectStation(0); },
   },
   // 11 ── Channel Legend
   {
@@ -2219,7 +2217,7 @@ const TUTORIAL_STEPS = [
     getTarget: () => null,
     title: 'Live Training Exercise',
     body: 'Now practise. Click <strong style="color:#d29922">SIMULATE 1 COLOR</strong> to introduce a single-channel drift — then use the registration fields to bring it back to <strong style="color:#3fb950">100%</strong>. Once comfortable, try <strong style="color:#e05c5c">SIMULATE TOTAL MISALIGNMENT</strong> for a full press scenario.<br><br><strong style="color:#999">Black (K)</strong> is always your anchor — it is never moved.',
-    action: () => { if (S.selCh < 0) selectStation(1); },
+    action: () => { if (S.selCh < 0) selectStation(0); },
   },
 ];
 
@@ -2305,8 +2303,15 @@ function tutRender() {
   requestAnimationFrame(() => tutPositionCard(el));
 }
 
+// Dismissing the welcome card (skip / click-away) — hides the first-visit
+// overlay but keeps the button pulsing until the tutorial is actually opened.
 function tutAcknowledge() {
   localStorage.setItem('canworks_tut_seen', '1');
+}
+
+// Opening the tutorial for real — stops the pulse for good.
+function tutMarkOpened() {
+  localStorage.setItem('canworks_tut_opened', '1');
   document.getElementById('btn-tutorial').classList.remove('pulsing');
 }
 
@@ -2314,6 +2319,7 @@ function tutStart() {
   const saved = parseInt(localStorage.getItem('canworks_tut_step') || '0', 10);
   tutStep = (saved >= 0 && saved < TUTORIAL_STEPS.length) ? saved : 0;
   tutAcknowledge();
+  tutMarkOpened();
   document.getElementById('tut-overlay').classList.add('active');
   if (S.selCh >= 0) buildRegPanel();
   tutRender();
@@ -2377,8 +2383,8 @@ function initTutorial() {
     });
   }
 
-  // Pulse the button until acknowledged
-  if (!seen) {
+  // Pulse the button on every launch until the tutorial has been opened at least once
+  if (!localStorage.getItem('canworks_tut_opened')) {
     document.getElementById('btn-tutorial').classList.add('pulsing');
   }
 
