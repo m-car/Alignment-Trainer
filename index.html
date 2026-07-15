@@ -354,6 +354,35 @@ footer {
   font-family: 'Courier New', monospace;
 }
 #status { color: var(--dim); margin-left: auto; }
+
+/* ── SEAM ZOOM MODAL ─────────────── */
+#seam-modal {
+  display: none;
+  position: fixed; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 540px; height: 620px;
+  background: #0a0a0a;
+  border: 1px solid #333;
+  border-radius: 4px;
+  z-index: 1000;
+  box-shadow: 0 0 80px rgba(0,0,0,0.95), 0 0 0 1px rgba(88,166,255,0.15);
+  flex-direction: column;
+}
+#seam-modal.open { display: flex; }
+#seam-modal-canvas { flex: 1; display: block; width: 100%; min-height: 0; }
+.modal-hdr {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 5px 8px 5px 10px; border-bottom: 1px solid #1e1e1e;
+  flex-shrink: 0;
+  font-size: 10px; color: #666; text-transform: uppercase;
+  letter-spacing: 1px; font-family: 'Courier New', monospace; background: #080808;
+}
+.modal-close-btn {
+  background: none; border: 1px solid #333; color: #666; cursor: pointer;
+  font-size: 10px; padding: 2px 8px; border-radius: 2px;
+  font-family: 'Courier New', monospace; transition: all 0.1s;
+}
+.modal-close-btn:hover { border-color: var(--bad); color: var(--bad); }
 </style>
 </head>
 <body>
@@ -407,6 +436,8 @@ footer {
         <button class="focus-btn" data-side="-1">BOTH</button>
         <span style="width:1px;background:#333;height:14px;display:inline-block;margin:0 2px;"></span>
         <button class="focus-btn" id="btn-crop">CROP IDLE</button>
+        <span style="width:1px;background:#333;height:14px;display:inline-block;margin:0 2px;"></span>
+        <button class="focus-btn" id="btn-loupe">LOUPE</button>
       </span>
     </div>
     <canvas id="unrolled-canvas"></canvas>
@@ -421,7 +452,10 @@ footer {
     <canvas id="headbar-canvas"></canvas>
     <div class="plabel">TOP-DOWN &mdash; RADIAL REG.</div>
     <canvas id="topdown-canvas"></canvas>
-    <div class="plabel">SEAM ZOOM &mdash; NOZZLE INTERLEAVE</div>
+    <div class="plabel" style="display:flex;align-items:center;justify-content:space-between;padding-right:5px;">
+      <span>SEAM ZOOM</span>
+      <button id="btn-seam-popup" class="focus-btn" style="padding:1px 7px;font-size:9px;">POPUP ↗</button>
+    </div>
     <canvas id="seam-zoom-canvas"></canvas>
   </div>
 
@@ -431,6 +465,14 @@ footer {
   <span>P1=bottom head &nbsp;|&nbsp; P2=middle head (staggered, piezo) &nbsp;|&nbsp; P3=top head &nbsp;|&nbsp; 12oz artwork: P1+lower P2 active &nbsp;|&nbsp; SPL=left mandrel &nbsp;|&nbsp; SPR=right mandrel</span>
   <span id="status">Tap a printhead station to begin</span>
 </footer>
+
+<div id="seam-modal">
+  <div class="modal-hdr">
+    <span>SEAM ZOOM &mdash; P1/P2 NOZZLE INTERLEAVE</span>
+    <button class="modal-close-btn" id="btn-seam-close">✕ CLOSE</button>
+  </div>
+  <canvas id="seam-modal-canvas"></canvas>
+</div>
 
 <script>
 // ════════════════════════════════════════════════════════════
@@ -495,6 +537,15 @@ const S = {
   cropIdle: false,   // when true, unrolled view hides idle nozzle zone above print area
   ch: CH_KEYS.map(() => newChannel()),
 };
+
+// ════════════════════════════════════════════════════════════
+// LOUPE + MODAL STATE
+// ════════════════════════════════════════════════════════════
+let loupePos    = null;   // {x,y} in uCanvas element px, or null
+let loupeActive = false;
+const LOUPE_R   = 130;    // loupe radius in screen px
+const LOUPE_Z   = 5;      // magnification factor
+let seamModalOpen = false;
 
 // ════════════════════════════════════════════════════════════
 // CANVAS REFS
@@ -1083,6 +1134,90 @@ function renderUnrolled() {
 
 
   uCtx.restore();
+
+  // Inspection loupe overlay — drawn after main restore so it's in screen space
+  if (loupeActive && loupePos) drawLoupe(loupePos.x, loupePos.y);
+}
+
+// ────────────────────────────────────────────────────────────
+// INSPECTION LOUPE
+// Reads a snapshot of the already-rendered uCanvas and draws it
+// magnified into a circular clip at the mouse position.
+// ────────────────────────────────────────────────────────────
+function drawLoupe(mx, my) {
+  const R = LOUPE_R;
+  const Z = LOUPE_Z;
+  const sw = (R * 2) / Z;
+  const sh = (R * 2) / Z;
+  const sx = mx - sw / 2;
+  const sy = my - sh / 2;
+  const W  = uCanvas.width;
+  const H  = uCanvas.height;
+
+  // Drop-shadow halo
+  uCtx.save();
+  uCtx.shadowColor = 'rgba(0,0,0,0.85)';
+  uCtx.shadowBlur  = 18;
+  uCtx.beginPath();
+  uCtx.arc(mx, my, R + 2, 0, Math.PI * 2);
+  uCtx.fillStyle = '#000';
+  uCtx.fill();
+  uCtx.shadowBlur = 0;
+  uCtx.restore();
+
+  // Clip to loupe circle
+  uCtx.save();
+  uCtx.beginPath();
+  uCtx.arc(mx, my, R, 0, Math.PI * 2);
+  uCtx.clip();
+
+  // Fill background (handles edge of canvas where src may be out of bounds)
+  uCtx.fillStyle = '#111';
+  uCtx.fillRect(mx - R, my - R, R * 2, R * 2);
+
+  // Draw magnified snapshot — drawImage from same canvas uses pre-call snapshot
+  uCtx.drawImage(uCanvas,
+    Math.max(0, sx), Math.max(0, sy),
+    Math.min(sw, W - Math.max(0, sx)), Math.min(sh, H - Math.max(0, sy)),
+    mx - R + Math.max(0, -sx) * Z, my - R + Math.max(0, -sy) * Z,
+    Math.min(sw, W - Math.max(0, sx)) * Z, Math.min(sh, H - Math.max(0, sy)) * Z
+  );
+
+  // Crosshair at center
+  uCtx.strokeStyle = 'rgba(255,60,60,0.8)';
+  uCtx.lineWidth   = 1;
+  uCtx.setLineDash([3, 3]);
+  uCtx.beginPath();
+  uCtx.moveTo(mx - 14, my); uCtx.lineTo(mx + 14, my);
+  uCtx.moveTo(mx, my - 14); uCtx.lineTo(mx, my + 14);
+  uCtx.stroke();
+
+  // Rim highlight (inner)
+  uCtx.setLineDash([]);
+  uCtx.strokeStyle = 'rgba(255,255,255,0.08)';
+  uCtx.lineWidth   = 3;
+  uCtx.beginPath();
+  uCtx.arc(mx, my, R - 3, 0, Math.PI * 2);
+  uCtx.stroke();
+
+  uCtx.restore();
+
+  // Outer lens ring
+  uCtx.save();
+  uCtx.strokeStyle = 'rgba(200,200,200,0.75)';
+  uCtx.lineWidth   = 2;
+  uCtx.beginPath();
+  uCtx.arc(mx, my, R, 0, Math.PI * 2);
+  uCtx.stroke();
+  uCtx.restore();
+
+  // Zoom label
+  uCtx.save();
+  uCtx.fillStyle = 'rgba(255,255,255,0.45)';
+  uCtx.font      = '9px Courier New';
+  uCtx.textAlign = 'center';
+  uCtx.fillText(`${Z}×`, mx, my + R - 8);
+  uCtx.restore();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -1259,11 +1394,11 @@ function updateQuality(){
 // Magnified cross-section of the P1/P2 nozzle interleave zone.
 // Shows which rows each head fires, gaps (red) and overlaps (yellow).
 // ════════════════════════════════════════════════════════════
-function renderSeamZoom() {
-  const W = szCanvas.width, H = szCanvas.height;
-  szCtx.clearRect(0, 0, W, H);
-  szCtx.fillStyle = '#080808';
-  szCtx.fillRect(0, 0, W, H);
+function renderSeamZoomTo(canvas, ctx) {
+  const W = canvas.width, H = canvas.height;
+  ctx.clearRect(0, 0, W, H);
+  ctx.fillStyle = '#080808';
+  ctx.fillRect(0, 0, W, H);
   if (W < 20 || H < 40) return;
 
   const chIdx = S.selCh >= 0 ? S.selCh : 1;
@@ -1280,23 +1415,23 @@ function renderSeamZoom() {
   const nomSeamY = CAN_TOP_Y + headBaseY(2);
 
   const SHOW     = 14;
-  const TITLE_H  = 16;
-  const LEGEND_H = 14;
+  const TITLE_H  = 18;
+  const LEGEND_H = 18;
   const availH   = H - TITLE_H - LEGEND_H - 4;
   const rowPx    = Math.max(3, Math.floor(availH / (SHOW * 2)));
   const totalDrawH = rowPx * SHOW * 2;
   const startCanY  = TITLE_H + Math.round((availH - totalDrawH) / 2);
 
-  const lblW = 22;
+  const lblW = 28;
   const barX = lblW;
   const barW = W - lblW * 2;
 
   const chanName = S.selCh >= 0 ? CH_KEYS[S.selCh] : 'K';
   const sideName = col === 0 ? 'CAN1' : 'CAN2';
-  szCtx.fillStyle = '#444';
-  szCtx.font = '8px Courier New';
-  szCtx.textAlign = 'center';
-  szCtx.fillText(`P1/P2 SEAM · ${chanName} · ${sideName}`, W / 2, TITLE_H - 3);
+  ctx.fillStyle = '#555';
+  ctx.font = '9px Courier New';
+  ctx.textAlign = 'center';
+  ctx.fillText(`P1/P2 SEAM  ·  ${chanName} CHANNEL  ·  ${sideName}`, W / 2, TITLE_H - 4);
 
   for (let ri = -SHOW; ri < SHOW; ri++) {
     const y     = nomSeamY + ri;
@@ -1319,67 +1454,73 @@ function renderSeamZoom() {
 
     const inSeam = inP2 && inP1;
     let fill;
-    if (p2Fires && p1Fires)  fill = `rgba(255,210,40,0.75)`;
-    else if (!p2Fires && !p1Fires) fill = `rgba(210,40,40,0.35)`;
-    else if (p2Fires) fill = inSeam ? `rgba(${r},${g},${b},0.92)` : `rgba(${r},${g},${b},0.28)`;
-    else              fill = inSeam ? `rgba(${r},${g},${b},0.92)` : `rgba(${r},${g},${b},0.28)`;
+    if (p2Fires && p1Fires)       fill = `rgba(255,210,40,0.80)`;
+    else if (!p2Fires && !p1Fires) fill = `rgba(210,40,40,0.40)`;
+    else if (p2Fires)  fill = inSeam ? `rgba(${r},${g},${b},0.92)` : `rgba(${r},${g},${b},0.28)`;
+    else               fill = inSeam ? `rgba(${r},${g},${b},0.92)` : `rgba(${r},${g},${b},0.28)`;
 
-    szCtx.fillStyle = fill;
-    szCtx.fillRect(barX, drawY, barW, rowH);
+    ctx.fillStyle = fill;
+    ctx.fillRect(barX, drawY, barW, rowH);
 
     // Orange seam-zone bracket on left & right edges
     if (inSeam) {
-      szCtx.fillStyle = 'rgba(245,166,35,0.55)';
-      szCtx.fillRect(2, drawY, 3, rowH);
-      szCtx.fillRect(W - 5, drawY, 3, rowH);
+      ctx.fillStyle = 'rgba(245,166,35,0.6)';
+      ctx.fillRect(2, drawY, 4, rowH);
+      ctx.fillRect(W - 6, drawY, 4, rowH);
     }
 
-    // Head zone labels (every other row, outside seam)
-    if (ri % 2 === 0) {
-      szCtx.font = '7px Courier New';
+    // Row labels
+    if (ri % 2 === 0 || rowPx >= 8) {
+      const fs = rowPx >= 8 ? '9px' : '7px';
+      ctx.font = `${fs} Courier New`;
       if (inP2 && !inP1) {
-        szCtx.fillStyle = '#3a5a7a'; szCtx.textAlign = 'right';
-        szCtx.fillText('P2', barX - 2, drawY + rowPx / 2 + 2);
+        ctx.fillStyle = '#3a6a9a'; ctx.textAlign = 'right';
+        ctx.fillText('P2', barX - 3, drawY + rowPx / 2 + 3);
       }
       if (inP1 && !inP2) {
-        szCtx.fillStyle = '#5a3a3a'; szCtx.textAlign = 'left';
-        szCtx.fillText('P1', barX + barW + 2, drawY + rowPx / 2 + 2);
+        ctx.fillStyle = '#7a3a3a'; ctx.textAlign = 'left';
+        ctx.fillText('P1', barX + barW + 3, drawY + rowPx / 2 + 3);
       }
-      // Row offset tick
-      szCtx.fillStyle = '#2a2a2a'; szCtx.textAlign = 'right';
-      szCtx.fillText((ri >= 0 ? '+' : '') + ri, lblW - 6, drawY + rowPx / 2 + 2);
+      ctx.fillStyle = '#2e2e2e'; ctx.textAlign = 'right';
+      ctx.fillText((ri >= 0 ? '+' : '') + ri, lblW - 5, drawY + rowPx / 2 + 3);
     }
   }
 
   // Nominal seam line
   const seamDrawY = startCanY + SHOW * rowPx;
-  szCtx.save();
-  szCtx.strokeStyle = '#f5a623'; szCtx.lineWidth = 1; szCtx.setLineDash([4, 3]);
-  szCtx.beginPath(); szCtx.moveTo(barX, seamDrawY); szCtx.lineTo(barX + barW, seamDrawY); szCtx.stroke();
-  szCtx.restore();
-  szCtx.fillStyle = '#f5a623'; szCtx.font = '7px Courier New'; szCtx.textAlign = 'left';
-  szCtx.fillText('seam', barX + 2, seamDrawY - 2);
+  ctx.save();
+  ctx.strokeStyle = '#f5a623'; ctx.lineWidth = 1; ctx.setLineDash([4, 3]);
+  ctx.beginPath(); ctx.moveTo(barX, seamDrawY); ctx.lineTo(barX + barW, seamDrawY); ctx.stroke();
+  ctx.restore();
+  ctx.fillStyle = '#f5a623'; ctx.font = '8px Courier New'; ctx.textAlign = 'left';
+  ctx.fillText('seam', barX + 3, seamDrawY - 3);
 
   // Legend
-  const legY = H - LEGEND_H + 9;
+  const legY = H - 6;
   const items = [
-    [`rgba(${r},${g},${b},0.92)`, 'fires'],
-    [`rgba(${r},${g},${b},0.28)`, 'solid'],
-    ['rgba(210,40,40,0.4)',        'gap'],
-    ['rgba(255,210,40,0.75)',      'overlap'],
+    [`rgba(${r},${g},${b},0.92)`, 'fires (seam)'],
+    [`rgba(${r},${g},${b},0.28)`, 'solid zone'],
+    ['rgba(210,40,40,0.5)',        'gap'],
+    ['rgba(255,210,40,0.80)',      'overlap'],
   ];
   let lx = barX;
-  szCtx.font = '7px Courier New';
+  ctx.font = '8px Courier New';
   items.forEach(([c, label]) => {
-    szCtx.fillStyle = c; szCtx.fillRect(lx, legY - 6, 8, 7);
-    szCtx.fillStyle = '#444'; szCtx.textAlign = 'left';
-    szCtx.fillText(label, lx + 10, legY);
-    lx += label.length * 4.4 + 16;
+    ctx.fillStyle = c; ctx.fillRect(lx, legY - 8, 9, 8);
+    ctx.fillStyle = '#555'; ctx.textAlign = 'left';
+    ctx.fillText(label, lx + 12, legY);
+    lx += label.length * 4.8 + 18;
   });
 }
 
+function renderSeamZoom() { renderSeamZoomTo(szCanvas, szCtx); }
+
 function renderAll(){
   renderUnrolled(); renderHeadBar(); renderTopDown(); renderSeamZoom(); updateQuality();
+  if (seamModalOpen) {
+    const mc = document.getElementById('seam-modal-canvas');
+    renderSeamZoomTo(mc, mc.getContext('2d'));
+  }
   if(S.selCh>=0) refreshRegDisplays();
 }
 
@@ -1794,6 +1935,21 @@ function initFocusBtns() {
   });
 }
 
+function openSeamModal() {
+  seamModalOpen = true;
+  const modal = document.getElementById('seam-modal');
+  modal.classList.add('open');
+  const mc = document.getElementById('seam-modal-canvas');
+  mc.width  = modal.clientWidth;
+  mc.height = modal.clientHeight - 34; // minus modal header
+  renderSeamZoomTo(mc, mc.getContext('2d'));
+}
+
+function closeSeamModal() {
+  seamModalOpen = false;
+  document.getElementById('seam-modal').classList.remove('open');
+}
+
 function init(){
   buildStationGrid();
   buildChLegend();
@@ -1803,6 +1959,33 @@ function init(){
   resize();
   requestAnimationFrame(tickPiezo);
   selectStation(1); // default: WHITE (station 5)
+
+  // ── Loupe toggle ────────────────────────────────────────────
+  const loupeBtn = document.getElementById('btn-loupe');
+  loupeBtn.addEventListener('click', () => {
+    loupeActive = !loupeActive;
+    loupeBtn.classList.toggle('active', loupeActive);
+    uCanvas.style.cursor = loupeActive ? 'none' : '';
+    if (!loupeActive) { loupePos = null; renderUnrolled(); }
+  });
+
+  uCanvas.addEventListener('mousemove', e => {
+    const rect = uCanvas.getBoundingClientRect();
+    loupePos = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    if (loupeActive) renderUnrolled();
+  });
+  uCanvas.addEventListener('mouseleave', () => {
+    loupePos = null;
+    if (loupeActive) renderUnrolled();
+  });
+
+  // ── Seam zoom popup ─────────────────────────────────────────
+  document.getElementById('btn-seam-popup').addEventListener('click', openSeamModal);
+  document.getElementById('btn-seam-close').addEventListener('click', closeSeamModal);
+  // Click outside modal to close
+  document.getElementById('seam-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('seam-modal')) closeSeamModal();
+  });
 }
 
 window.addEventListener('load',init);
