@@ -435,7 +435,7 @@ footer {
         <button class="focus-btn" data-side="1">CAN2</button>
         <button class="focus-btn" data-side="-1">BOTH</button>
         <span style="width:1px;background:#333;height:14px;display:inline-block;margin:0 2px;"></span>
-        <button class="focus-btn" id="btn-crop">CROP IDLE</button>
+        <button class="focus-btn active" id="btn-crop">CROP IDLE</button>
         <span style="width:1px;background:#333;height:14px;display:inline-block;margin:0 2px;"></span>
         <button class="focus-btn" id="btn-loupe">LOUPE</button>
       </span>
@@ -534,7 +534,7 @@ const S = {
   pattern: 'artwork', // reg text pattern: letter | grid | target | burst | artwork
   chVisible: CH_KEYS.map(() => true), // per-channel visibility toggle
   canFormat: '12oz', // '12oz' | '16oz' | 'slk' — controls geometry + artwork
-  cropIdle: false,   // when true, unrolled view hides idle nozzle zone above print area
+  cropIdle: true,    // when true, unrolled view hides idle nozzle zone above print area
   ch: CH_KEYS.map(() => newChannel()),
 };
 
