@@ -704,6 +704,8 @@ footer {
         <button class="focus-btn active" id="btn-crop">CROP IDLE</button>
         <span style="width:1px;background:#333;height:14px;display:inline-block;margin:0 2px;"></span>
         <button class="focus-btn" id="btn-loupe">🔍 LOUPE</button>
+        <span style="width:1px;background:#333;height:14px;display:inline-block;margin:0 2px;"></span>
+        <button class="focus-btn active" id="btn-glint">✨ GLINT</button>
       </span>
     </div>
     <canvas id="unrolled-canvas"></canvas>
@@ -836,6 +838,7 @@ const S = {
   chVisible: CH_KEYS.map(() => true), // per-channel visibility toggle
   canFormat: '12oz', // '12oz' | '16oz' | 'slk' — controls geometry + artwork
   cropIdle: true,    // when true, unrolled view hides idle nozzle zone above print area
+  glint: true,       // animated specular sheen sweeping across the aluminum
   ch: CH_KEYS.map(() => newChannel()),
 };
 
@@ -1019,6 +1022,10 @@ function headParams(chIdx, col, idx) {
 // ════════════════════════════════════════════════════════════
 const PIEZO_SPEED = 8; // µm per frame
 
+// Glint sweep position (fraction across the can), updated each frame from the clock
+let glintPos = -1;
+const GLINT_PERIOD = 5200; // ms for one full sweep-and-back
+
 function tickPiezo() {
   let dirty = false;
   S.ch.forEach(ch => {
@@ -1033,6 +1040,12 @@ function tickPiezo() {
       }
     });
   });
+  if (S.glint) {
+    const t   = (performance.now() % GLINT_PERIOD) / GLINT_PERIOD; // 0..1
+    const tri = t < 0.5 ? t * 2 : (1 - t) * 2;                     // 0..1..0 ping-pong
+    glintPos = -0.15 + tri * 1.30;                                 // sweeps -0.15..1.15
+    dirty = true;
+  }
   if (dirty) renderAll();
   requestAnimationFrame(tickPiezo);
 }
@@ -1112,6 +1125,19 @@ function drawCanBg(ctx, cx) {
   const gr = ctx.createLinearGradient(cx + CAN_W, 0, cx + CAN_W - edgeW, 0);
   gr.addColorStop(0, 'rgba(245,248,252,0.55)'); gr.addColorStop(1, 'rgba(245,248,252,0)');
   ctx.fillStyle = gr; ctx.fillRect(cx + CAN_W - edgeW, activeY, edgeW, PRINT_H);
+
+  // Animated glint — a soft sheen sweeping across as if the can turns under lights
+  if (S.glint && glintPos > -0.5) {
+    const gx = cx + CAN_W * glintPos, gw = CAN_W * 0.16;
+    const sg = ctx.createLinearGradient(gx - gw, 0, gx + gw, 0);
+    sg.addColorStop(0,   'rgba(255,255,255,0)');
+    sg.addColorStop(0.5, 'rgba(255,255,255,0.24)');
+    sg.addColorStop(1,   'rgba(255,255,255,0)');
+    ctx.save();
+    ctx.beginPath(); ctx.rect(cx, activeY, CAN_W, PRINT_H); ctx.clip();
+    ctx.fillStyle = sg; ctx.fillRect(gx - gw, activeY, gw * 2, PRINT_H);
+    ctx.restore();
+  }
 
   // Outer border for full head stack
   ctx.strokeStyle = '#555'; ctx.lineWidth = 1;
@@ -2258,6 +2284,14 @@ function init(){
     loupeBtn.classList.toggle('active', loupeActive);
     uCanvas.style.cursor = loupeActive ? 'none' : '';
     if (!loupeActive) { loupePos = null; renderUnrolled(); }
+  });
+
+  // ── Glint toggle ────────────────────────────────────────────
+  const glintBtn = document.getElementById('btn-glint');
+  glintBtn.addEventListener('click', () => {
+    S.glint = !S.glint;
+    glintBtn.classList.toggle('active', S.glint);
+    renderAll(); // redraw once when turning off so the sheen clears
   });
 
   uCanvas.addEventListener('mousemove', e => {
