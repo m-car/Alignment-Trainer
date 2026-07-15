@@ -2363,6 +2363,12 @@ function tutStart() {
   tutRender();
 }
 
+function tutEnd() {
+  localStorage.setItem('canworks_tut_step', String(tutStep));
+  document.getElementById('tut-overlay').classList.remove('active');
+  if (S.selCh >= 0) buildRegPanel();
+}
+
 // Lightweight description popover shown by the per-element ? badges.
 function showHelpPop(anchor, title, desc) {
   const pop = document.getElementById('help-pop');
