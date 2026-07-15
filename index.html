@@ -80,6 +80,21 @@ header h1 {
   font-family: 'Courier New', monospace; transition: all 0.1s; white-space: nowrap;
 }
 #btn-tut-reset:hover { border-color: var(--warn); color: var(--warn); }
+
+/* Per-element help badges — open the tutorial at the relevant step */
+.help-q {
+  width: 15px; height: 15px; border-radius: 50%;
+  border: 1px solid rgba(88,166,255,0.4);
+  background: rgba(88,166,255,0.08);
+  color: rgba(88,166,255,0.8);
+  font-family: 'Courier New', monospace;
+  font-size: 10px; font-weight: bold; line-height: 1;
+  cursor: pointer; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  transition: all 0.12s; flex-shrink: 0;
+}
+.help-q:hover { background: var(--accent); color: #000; border-color: var(--accent); }
+.help-q.abs { position: absolute; top: 5px; right: 6px; z-index: 4; }
 .cscore {
   padding: 2px 6px; border-radius: 3px;
   font-size: 11px; border: 1px solid;
@@ -637,9 +652,9 @@ footer {
   </div>
 
   <div id="right-panel">
-    <div class="plabel">PRINTHEAD BAR</div>
+    <div class="plabel" id="headbar-label">PRINTHEAD BAR</div>
     <canvas id="headbar-canvas"></canvas>
-    <div class="plabel">TOP-DOWN &mdash; RADIAL REG.</div>
+    <div class="plabel" id="topdown-label">TOP-DOWN &mdash; RADIAL REG.</div>
     <canvas id="topdown-canvas"></canvas>
   </div>
 
@@ -2332,10 +2347,40 @@ function tutStart() {
   tutRender();
 }
 
-function tutEnd() {
-  localStorage.setItem('canworks_tut_step', String(tutStep));
-  document.getElementById('tut-overlay').classList.remove('active');
+// Open the tutorial directly at a specific step (used by the per-element ? badges)
+function tutStartAt(step) {
+  tutAcknowledge();
+  tutMarkOpened();
+  tutStep = (step >= 0 && step < TUTORIAL_STEPS.length) ? step : 0;
+  document.getElementById('tut-overlay').classList.add('active');
   if (S.selCh >= 0) buildRegPanel();
+  tutRender();
+}
+
+// Inject small ? badges onto key UI sections; each jumps into its tutorial step.
+// Anchor to stable outer containers so they survive inner rebuilds.
+function injectHelpButtons() {
+  const map = [
+    { sel: '#station-grid',   step: 1,  abs: true  },
+    { sel: '#reg-header',     step: 2,  abs: true  },
+    { sel: '#tut-can-format', step: 11, abs: false },
+    { sel: '#tut-focus-btns', step: 12, abs: false },
+    { sel: '#tut-pattern-btns', step: 13, abs: false },
+    { sel: '#ch-legend-wrap', step: 10, abs: true  },
+    { sel: '#headbar-label',  step: 16, abs: true  },
+    { sel: '#topdown-label',  step: 17, abs: true  },
+  ];
+  map.forEach(({ sel, step, abs }) => {
+    const host = document.querySelector(sel);
+    if (!host || host.querySelector(':scope > .help-q')) return;
+    if (abs && getComputedStyle(host).position === 'static') host.style.position = 'relative';
+    const b = document.createElement('button');
+    b.className = 'help-q' + (abs ? ' abs' : '');
+    b.textContent = '?';
+    b.title = 'What is this? — open the tutorial here';
+    b.addEventListener('click', e => { e.stopPropagation(); tutStartAt(step); });
+    host.appendChild(b);
+  });
 }
 
 function positionWelcomeCard() {
@@ -2402,6 +2447,8 @@ function initTutorial() {
     localStorage.removeItem('canworks_tut_step');
     location.reload();
   });
+
+  injectHelpButtons();
 
   document.getElementById('btn-tutorial').addEventListener('click', tutStart);
   document.getElementById('tut-exit').addEventListener('click', tutEnd);
