@@ -65,6 +65,15 @@ header h1 {
   font-family: 'Courier New', monospace;
 }
 #channel-scores { display: flex; gap: 5px; }
+#quality-wrap { display: flex; align-items: center; gap: 6px; }
+#quality-wrap.hidden #overall-score,
+#quality-wrap.hidden #channel-scores { visibility: hidden; }
+#btn-quality-toggle {
+  background: none; border: 1px solid #2a2a2a; color: #444; cursor: pointer;
+  font-size: 9px; padding: 1px 5px; border-radius: 2px;
+  font-family: 'Courier New', monospace; transition: all 0.1s; white-space: nowrap;
+}
+#btn-quality-toggle:hover { border-color: #555; color: #888; }
 .cscore {
   padding: 2px 6px; border-radius: 3px;
   font-size: 11px; border: 1px solid;
@@ -470,7 +479,7 @@ footer {
 /* Dark backdrop — the spotlight punch-through is done via box-shadow on #tut-spot */
 #tut-backdrop {
   position: fixed; inset: 0;
-  background: rgba(0,0,0,0.78);
+  background: rgba(0,0,0,0.52);
   pointer-events: all;
 }
 
@@ -478,7 +487,7 @@ footer {
 #tut-spot {
   position: fixed;
   border-radius: 4px;
-  box-shadow: 0 0 0 9999px rgba(0,0,0,0.78);
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.52);
   border: 2px solid rgba(88,166,255,0.7);
   transition: top 0.35s cubic-bezier(.4,0,.2,1),
               left 0.35s cubic-bezier(.4,0,.2,1),
@@ -554,9 +563,12 @@ footer {
 
 <header>
   <h1>&#9632; Canworks &mdash; Alignment Trainer</h1>
-  <span style="color:#777;font-size:12px;">QUALITY</span>
-  <div id="overall-score">100%</div>
-  <div id="channel-scores"></div>
+  <div id="quality-wrap">
+    <span style="color:#777;font-size:12px;">QUALITY</span>
+    <div id="overall-score">100%</div>
+    <div id="channel-scores"></div>
+    <button id="btn-quality-toggle" title="Show/hide quality score">HIDE</button>
+  </div>
   <div class="hdr-spacer"></div>
   <span style="color:#555;font-size:10px;letter-spacing:.05em;">PATTERN</span>
   <div id="tut-pattern-btns" style="display:flex;gap:4px;align-items:center;">
@@ -607,7 +619,7 @@ footer {
         <span style="width:1px;background:#333;height:14px;display:inline-block;margin:0 2px;"></span>
         <button class="focus-btn active" id="btn-crop">CROP IDLE</button>
         <span style="width:1px;background:#333;height:14px;display:inline-block;margin:0 2px;"></span>
-        <button class="focus-btn" id="btn-loupe">LOUPE</button>
+        <button class="focus-btn" id="btn-loupe">🔍 LOUPE</button>
       </span>
     </div>
     <canvas id="unrolled-canvas"></canvas>
@@ -1654,6 +1666,12 @@ function buildStationGrid(){
 function selectStation(stIdx){
   S.selSt=stIdx; S.selCh=STATIONS[stIdx].chIdx;
   document.querySelectorAll('.st-icon').forEach((el,i)=>el.classList.toggle('active',i===stIdx));
+  // Isolate selected color + black so the learner sees only the relevant channels
+  if (S.selCh >= 0) {
+    const kIdx = CH_KEYS.indexOf('K');
+    S.chVisible = CH_KEYS.map((_, i) => i === S.selCh || i === kIdx);
+    buildChLegend();
+  }
   buildRegPanel();
   renderAll();
 }
@@ -2028,6 +2046,14 @@ function init(){
   requestAnimationFrame(tickPiezo);
   selectStation(1); // default: WHITE (station 5)
 
+  // ── Quality toggle ──────────────────────────────────────────
+  const qWrap = document.getElementById('quality-wrap');
+  const qBtn  = document.getElementById('btn-quality-toggle');
+  qBtn.addEventListener('click', () => {
+    const hidden = qWrap.classList.toggle('hidden');
+    qBtn.textContent = hidden ? 'SHOW' : 'HIDE';
+  });
+
   // ── Loupe toggle ────────────────────────────────────────────
   const loupeBtn = document.getElementById('btn-loupe');
   loupeBtn.addEventListener('click', () => {
@@ -2277,7 +2303,8 @@ function tutAcknowledge() {
 }
 
 function tutStart() {
-  tutStep = 0;
+  const saved = parseInt(localStorage.getItem('canworks_tut_step') || '0', 10);
+  tutStep = (saved >= 0 && saved < TUTORIAL_STEPS.length) ? saved : 0;
   tutAcknowledge();
   document.getElementById('tut-overlay').classList.add('active');
   if (S.selCh >= 0) buildRegPanel();
@@ -2285,6 +2312,7 @@ function tutStart() {
 }
 
 function tutEnd() {
+  localStorage.setItem('canworks_tut_step', String(tutStep));
   document.getElementById('tut-overlay').classList.remove('active');
   if (S.selCh >= 0) buildRegPanel();
 }
@@ -2355,7 +2383,7 @@ function initTutorial() {
   });
   document.getElementById('tut-next').addEventListener('click', () => {
     if (tutStep < TUTORIAL_STEPS.length - 1) { tutStep++; tutRender(); }
-    else tutEnd();
+    else { localStorage.removeItem('canworks_tut_step'); tutEnd(); }
   });
 
   document.addEventListener('keydown', e => {
