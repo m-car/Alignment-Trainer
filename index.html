@@ -653,7 +653,7 @@ footer {
 }
 #sim-coach-next:hover { background: #e5b23a; border-color: #e5b23a; }
 
-/* Channel-colour flash pulse used on the spotlighted station icon / chip */
+/* Channel-color flash pulse used on the spotlighted station icon / chip */
 @keyframes ch-flash {
   0%, 100% { box-shadow: 0 0 0 0 transparent; }
   50%      { box-shadow: 0 0 0 3px var(--flash-col), 0 0 16px 3px var(--flash-col); }
@@ -854,7 +854,7 @@ function newChannel() {
 }
 
 const S = {
-  globalAxial: 0,   // Field 2 — global axial shift ALL colours [mm]
+  globalAxial: 0,   // Field 2 — global axial shift ALL colors [mm]
   selSt:  -1,
   selCh:  -1,
   showRef: false,
@@ -1108,7 +1108,7 @@ function drawCanBg(ctx, cx) {
   ctx.fillRect(cx, CAN_TOP_Y, CAN_W, PRINT_OFFSET_Y);
 
   // Active print area — bare aluminum can surface.
-  // Cool mid-grey cylindrical shading so opaque white ink reads clearly lighter.
+  // Cool mid-gray cylindrical shading so opaque white ink reads clearly lighter.
   const activeY = CAN_TOP_Y + PRINT_OFFSET_Y;
   const g = ctx.createLinearGradient(cx, 0, cx + CAN_W, 0);
   g.addColorStop(0,    '#868d94');
@@ -1980,7 +1980,7 @@ function buildRegPanel(){
   subtitleEl.textContent=`STATION ${st.num!==null?st.num:'ALL'} — ${st.name}`;
 
   if(chIdx===-2){
-    body.innerHTML=`<div class="no-ctrl-msg">All channels displayed.<br>Field 2 (Axial All Colours) applies globally.<br><br>Select an individual station to adjust per-colour settings.</div>
+    body.innerHTML=`<div class="no-ctrl-msg">All channels displayed.<br>Field 2 (Axial All Colors) applies globally.<br><br>Select an individual station to adjust per-color settings.</div>
     ${buildField2HTML()}
     ${buildToolBtns()}`;
     wireAllBtns();
@@ -2042,7 +2042,7 @@ function buildRegPanel(){
 
 function buildField2HTML(){
   return makeRow(2,
-    `<strong>AXIAL SHIFT ALL COLOURS</strong><em>(+ = head / bottom) &nbsp; GLOBAL</em>`,
+    `<strong>AXIAL SHIFT ALL COLORS</strong><em>(+ = head / bottom) &nbsp; GLOBAL</em>`,
     makeArrField('globalAxial', S.globalAxial, 'mm'),
     'global-row', '', 'axialAll'
   );
@@ -2373,7 +2373,7 @@ const TUTORIAL_STEPS = [
   // 4 ── Field 2 — Global Axial
   {
     getTarget: () => tutFindRow(2),
-    title: 'Field 2 — Axial Shift All Colours',
+    title: 'Field 2 — Axial Shift All Colors',
     body: 'A <strong style="color:#e0e0e0">global correction</strong> — shifts all five ink channels up or down together. Use this first to rough-in the vertical position before fine-tuning individual channels.<br><br>Use the ▲▼ arrows to adjust in 0.25 mm steps.',
     action: () => { if (S.selCh < 0) selectStation(0); },
   },
@@ -2381,14 +2381,14 @@ const TUTORIAL_STEPS = [
   {
     getTarget: () => tutFindRow(3),
     title: 'Field 3 — Axial Shift (Per Channel)',
-    body: 'Fine-tunes <strong style="color:#e0e0e0">this colour\'s</strong> vertical position independently of the others. Positive = shifts toward the bottom of the can.<br><br>Adjust after the global axial (Field 2) is set.',
+    body: 'Fine-tunes <strong style="color:#e0e0e0">this color\'s</strong> vertical position independently of the others. Positive = shifts toward the bottom of the can.<br><br>Adjust after the global axial (Field 2) is set.',
     action: () => { if (S.selCh < 0) selectStation(0); },
   },
   // 6 ── Field 4 — Radial L
   {
     getTarget: () => tutFindRow(4),
     title: 'Field 4 — Radial Shift L (LEFT CAN)',
-    body: 'Shifts this colour around the can circumference on the <strong style="color:#e0e0e0">LEFT CAN / SPL mandrel</strong>. Positive = shifts right.<br><br>Does not affect the RIGHT CAN — each mandrel is adjusted independently.',
+    body: 'Shifts this color around the can circumference on the <strong style="color:#e0e0e0">LEFT CAN / SPL mandrel</strong>. Positive = shifts right.<br><br>Does not affect the RIGHT CAN — each mandrel is adjusted independently.',
     action: () => { if (S.selCh < 0) selectStation(0); },
   },
   // 7 ── Field 5 — Radial R
@@ -2423,7 +2423,7 @@ const TUTORIAL_STEPS = [
   {
     getTarget: () => document.querySelector('#ch-legend-wrap'),
     title: 'Ink Channel Legend',
-    body: 'Click any colour chip to <strong style="color:#e0e0e0">show or hide</strong> that channel on the canvas.<br><br>Isolate a single colour to check its registration without other channels overlapping it.',
+    body: 'Click any color chip to <strong style="color:#e0e0e0">show or hide</strong> that channel on the canvas.<br><br>Isolate a single color to check its registration without other channels overlapping it.',
   },
   // 12 ── Can Format
   {
@@ -2447,7 +2447,7 @@ const TUTORIAL_STEPS = [
   {
     getTarget: () => document.querySelector('#btn-crop'),
     title: 'Crop Idle',
-    body: 'Hides the idle nozzle zone (dark grey band above the artwork) so the active print area fills more of the screen. On by default.<br><br>Toggle it off to see which nozzle rows aren\'t firing for the current can height.',
+    body: 'Hides the idle nozzle zone (dark gray band above the artwork) so the active print area fills more of the screen. On by default.<br><br>Toggle it off to see which nozzle rows aren\'t firing for the current can height.',
   },
   // 16 ── Loupe
   {
@@ -2459,19 +2459,19 @@ const TUTORIAL_STEPS = [
   {
     getTarget: () => document.querySelector('#btn-glint'),
     title: 'Metallic Glint',
-    body: 'Toggle <strong style="color:#e0e0e0">GLINT</strong> to sweep a soft specular sheen across the can, simulating the reflective aluminium surface under the press lighting.<br><br>Leave it on for realism, or switch it off for a static view during precise registration work.',
+    body: 'Toggle <strong style="color:#e0e0e0">GLINT</strong> to sweep a soft specular sheen across the can, simulating the reflective aluminum surface under the press lighting.<br><br>Leave it on for realism, or switch it off for a static view during precise registration work.',
   },
   // 18 ── Top-Down
   {
     getTarget: () => document.querySelector('#topdown-canvas'),
     title: 'Top-Down Radial View',
-    body: 'Looking down the can axis. Each ink channel appears as a coloured arc — a perfectly registered press shows all arcs aligned at the same angle.<br><br>Arc offset = radial misalignment. The gap at the top is the seam reference point.',
+    body: 'Looking down the can axis. Each ink channel appears as a colored arc — a perfectly registered press shows all arcs aligned at the same angle.<br><br>Arc offset = radial misalignment. The gap at the top is the seam reference point.',
   },
   // 19 ── Live Exercise
   {
     getTarget: () => null,
     title: 'Live Training Exercise',
-    body: 'Now practise. Click <strong style="color:#d29922">SIMULATE 1 COLOR</strong> to introduce a single-channel drift — then use the registration fields to bring it back to <strong style="color:#3fb950">100%</strong>. Once comfortable, try <strong style="color:#e05c5c">SIMULATE TOTAL MISALIGNMENT</strong> for a full press scenario.<br><br><strong style="color:#999">Black (K)</strong> is always your anchor — it is never moved.',
+    body: 'Now practice. Click <strong style="color:#d29922">SIMULATE 1 COLOR</strong> to introduce a single-channel drift — then use the registration fields to bring it back to <strong style="color:#3fb950">100%</strong>. Once comfortable, try <strong style="color:#e05c5c">SIMULATE TOTAL MISALIGNMENT</strong> for a full press scenario.<br><br><strong style="color:#999">Black (K)</strong> is always your anchor — it is never moved.',
     action: () => { if (S.selCh < 0) selectStation(0); },
   },
 ];
@@ -2530,7 +2530,7 @@ function tutPositionCard(el) {
       return;
     }
   }
-  // Fallback: centre
+  // Fallback: center
   card.style.left = Math.max(margin, Math.min(vw - cw - margin, r.left)) + 'px';
   card.style.top  = Math.max(margin, Math.min(vh - ch - margin,
     r.bottom + pad < vh - ch - margin ? r.bottom + pad : r.top - ch - pad)) + 'px';
@@ -2624,11 +2624,11 @@ function injectHelpButtons() {
     { sel: '#tut-pattern-btns', abs: false, title: 'Pattern Selector',
       desc: '<b>ARTWORK</b> renders the real label. <b>LETTER</b> tears visibly at the seam when misaligned. <b>GRID / TARGET / BURST</b> are geometric patterns for precise registration checks.' },
     { sel: '#ch-legend-wrap', abs: true,  title: 'Ink Channel Legend',
-      desc: 'Click any colour chip to <b>show or hide</b> that channel on the canvas. Isolate a single colour to check its registration without others overlapping.' },
+      desc: 'Click any color chip to <b>show or hide</b> that channel on the canvas. Isolate a single color to check its registration without others overlapping.' },
     { sel: '#headbar-label',  abs: true,  title: 'Printhead Bar',
       desc: 'Schematic of the three-head stack for the selected channel. <span style="color:#d29922">Yellow</span> = gap (missed rows), <span style="color:#f85149">Red</span> = overlap, <span style="color:#58a6ff">blue</span> = middle piezo head.' },
     { sel: '#topdown-label',  abs: true,  title: 'Top-Down Radial View',
-      desc: 'Looking down the can axis. Each ink channel is a coloured arc — aligned arcs mean good registration. Arc offset = radial misalignment. The gap at the top is the seam reference.' },
+      desc: 'Looking down the can axis. Each ink channel is a colored arc — aligned arcs mean good registration. Arc offset = radial misalignment. The gap at the top is the seam reference.' },
   ];
   map.forEach(({ sel, abs, title, desc }) => {
     const host = document.querySelector(sel);
@@ -2659,14 +2659,14 @@ function injectHelpButtons() {
 
 // ── Per-field animated explainer ───────────────────────────────
 const FIELD_ANIM = {
-  axialAll: { title: 'Axial Shift All Colours',
-    cap: 'A <b>global</b> vertical trim — moves <b>every ink colour up or down together</b> at once, before you fine-tune any single channel.' },
+  axialAll: { title: 'Axial Shift All Colors',
+    cap: 'A <b>global</b> vertical trim — moves <b>every ink color up or down together</b> at once, before you fine-tune any single channel.' },
   axial:  { title: 'Axial Shift',
-    cap: 'Moves the whole colour <b>up or down</b> the can. The three printheads shift together — vertical registration.' },
+    cap: 'Moves the whole color <b>up or down</b> the can. The three printheads shift together — vertical registration.' },
   radial: { title: 'Radial Shift',
-    cap: 'Rotates the colour around the can, so it slides <b>left or right</b> in the unrolled view. All heads move together.' },
+    cap: 'Rotates the color around the can, so it slides <b>left or right</b> in the unrolled view. All heads move together.' },
   midX:   { title: 'Middle Head Offset',
-    cap: 'Shifts <b>only the centre printhead</b> sideways, correcting the seam between it and the top/bottom heads.' },
+    cap: 'Shifts <b>only the center printhead</b> sideways, correcting the seam between it and the top/bottom heads.' },
   piezoY: { title: 'Piezo (Middle Head)',
     cap: 'The piezo nudges <b>only the middle head up or down</b> with micron precision — fine vertical trim at the seam.' },
 };
@@ -2690,7 +2690,7 @@ function drawFieldAnim(type, ms) {
 
   const A = 13, s = Math.sin(ms / 620);
 
-  // Global axial — all five ink colours as stacked stripes moving together
+  // Global axial — all five ink colors as stacked stripes moving together
   if (type === 'axialAll') {
     const n = CH_CSS.length, gap = 3, sw = fw - 24, sx = fx + 12;
     const bandH = (fh - 16) / n, sh = bandH - gap;
@@ -2802,7 +2802,7 @@ function initFieldAnim() {
 }
 
 // ── Guided coach (shared by SIMULATE 1 COLOR & TOTAL MISALIGNMENT) ──────
-// Each step: { label, title, body, swatch?(css colour), flash?(css colour), target:()=>el }
+// Each step: { label, title, body, swatch?(css color), flash?(css color), target:()=>el }
 let coachSteps = [];
 let coachStep  = 0;
 
@@ -2870,18 +2870,18 @@ function endCoach() {
   document.getElementById('sim-coach').classList.remove('active');
 }
 
-// SIMULATE 1 COLOR — names the drifted colour, then explains the isolation
+// SIMULATE 1 COLOR — names the drifted color, then explains the isolation
 function runSimCoach(chIdx) {
   const name = CH_NAMES[chIdx], col = CH_CSS[chIdx];
   const stIdx = STATIONS.findIndex(s => s.chIdx === chIdx);
   runCoach([
     { label: 'MISALIGNMENT SIMULATED', swatch: col, flash: col,
       title: `${name} knocked out of alignment`,
-      body: `The <b>${name}</b> channel has been shifted out of registration — every other colour is still perfectly aligned. Your job is to bring it back to <b style="color:#3fb950">100%</b> using the registration fields.`,
+      body: `The <b>${name}</b> channel has been shifted out of registration — every other color is still perfectly aligned. Your job is to bring it back to <b style="color:#3fb950">100%</b> using the registration fields.`,
       target: () => document.querySelectorAll('#station-grid-inner .st-icon')[stIdx] || document.getElementById('station-grid') },
     { label: 'MISALIGNMENT SIMULATED', swatch: col, flash: col,
       title: `Focused on ${name} + Black`,
-      body: `Only <b>${name}</b> and <b>Black (K)</b> are shown on the canvas now, so you can read this channel's drift against the anchor without other colours in the way. Toggle the rest back on anytime from the legend chips.`,
+      body: `Only <b>${name}</b> and <b>Black (K)</b> are shown on the canvas now, so you can read this channel's drift against the anchor without other colors in the way. Toggle the rest back on anytime from the legend chips.`,
       target: () => document.querySelector(`#ch-legend .ch-chip[data-chi="${chIdx}"]`) || document.getElementById('ch-legend-wrap') },
   ]);
 }
@@ -2890,10 +2890,10 @@ function runSimCoach(chIdx) {
 function runTotalCoach() {
   runCoach([
     { label: 'CHALLENGE', title: 'Total misalignment',
-      body: `Every colour channel has been knocked out of registration — this is the full-press challenge. <b style="color:#999">Black (K)</b> stays fixed as your anchor and never moves.`,
+      body: `Every color channel has been knocked out of registration — this is the full-press challenge. <b style="color:#999">Black (K)</b> stays fixed as your anchor and never moves.`,
       target: () => document.getElementById('station-grid') },
-    { label: 'CHALLENGE', title: 'One colour at a time',
-      body: `Don't chase everything at once. Pick a single <b>colour chip</b> to isolate it, align that channel to <b style="color:#999">Black (K)</b>, then move to the next — until every score reads <b style="color:#3fb950">100%</b>.`,
+    { label: 'CHALLENGE', title: 'One color at a time',
+      body: `Don't chase everything at once. Pick a single <b>color chip</b> to isolate it, align that channel to <b style="color:#999">Black (K)</b>, then move to the next — until every score reads <b style="color:#3fb950">100%</b>.`,
       target: () => document.getElementById('ch-legend-wrap') },
   ]);
 }
