@@ -108,6 +108,25 @@ header h1 {
   font-family: 'Courier New', monospace; font-size: 10px; letter-spacing: 1px;
   text-transform: uppercase; color: var(--accent); margin-bottom: 5px;
 }
+.help-q.fld { width: 14px; height: 14px; font-size: 9px; margin-left: 6px; vertical-align: middle; }
+
+/* Per-field animated explainer popover */
+#fanim-pop {
+  position: fixed; z-index: 2100; width: 250px;
+  background: #0e1117; border: 1px solid rgba(88,166,255,0.45);
+  border-radius: 6px; box-shadow: 0 8px 40px rgba(0,0,0,0.85);
+  padding: 12px 12px 11px; display: none;
+}
+#fanim-pop.show { display: block; }
+#fanim-title {
+  font-family: 'Courier New', monospace; font-size: 10px; letter-spacing: 1px;
+  text-transform: uppercase; color: var(--accent); margin-bottom: 8px;
+}
+#fanim-canvas {
+  display: block; width: 226px; height: 150px; border-radius: 4px;
+  background: #05070a; border: 1px solid #1a1f26;
+}
+#fanim-cap { font-size: 12px; color: #a8a8a8; line-height: 1.5; margin-top: 9px; }
 .cscore {
   padding: 2px 6px; border-radius: 3px;
   font-size: 11px; border: 1px solid;
@@ -744,6 +763,13 @@ footer {
 
 <!-- ── HELP DESCRIPTION POPOVER ────────────────────────────── -->
 <div id="help-pop"></div>
+
+<!-- ── PER-FIELD ANIMATED EXPLAINER ────────────────────────── -->
+<div id="fanim-pop">
+  <div id="fanim-title"></div>
+  <canvas id="fanim-canvas" width="226" height="150"></canvas>
+  <div id="fanim-cap"></div>
+</div>
 
 <!-- ── SIMULATE-1-COLOR COACH ──────────────────────────────── -->
 <div id="sim-coach">
@@ -1882,17 +1908,19 @@ function selectStation(stIdx, isolate=true){
   renderAll();
 }
 
-function makeRow(num, labelHTML, ctrlHTML, classes='', side=''){
+function makeRow(num, labelHTML, ctrlHTML, classes='', side='', anim=''){
   // side: 'L' = SPL/CAN1 only, 'R' = SPR/CAN2 only, '' = always active
+  // anim: motion key for the per-field "?" explainer (axial|radial|midX|piezoY)
   let muted = false;
   const tutActive = document.getElementById('tut-overlay')?.classList.contains('active');
   if (!tutActive) {
     if (side === 'R' && S.focusSide === 0) muted = true;  // LEFT CAN → mute R fields
     if (side === 'L' && S.focusSide === 1) muted = true;  // RIGHT CAN → mute L fields
   }
+  const q = anim ? `<button class="help-q fld" data-anim="${anim}" title="What does this setting do?">?</button>` : '';
   return `<div class="sr-row ${classes}${muted ? ' muted' : ''}">
     <div class="sr-num">${num}</div>
-    <div class="sr-label">${labelHTML}</div>
+    <div class="sr-label">${labelHTML}${q}</div>
     <div class="sr-ctrl">${ctrlHTML}</div>
   </div>`;
 }
@@ -1971,41 +1999,41 @@ function buildRegPanel(){
     buildField2HTML()+
     makeRow(3,
       `<strong>AXIAL SHIFT</strong><em>(+ = head / bottom)</em>`,
-      makeArrField('axialShift', ch.axialShift, 'mm'), '', ''
+      makeArrField('axialShift', ch.axialShift, 'mm'), '', '', 'axial'
     )+
     makeRow(4,
       `<strong>RADIAL L SHIFT</strong><em>(+ = right) &nbsp; SPL</em>`,
-      makeArrField('radialL', ch.radialL, 'mm'), '', 'L'
+      makeArrField('radialL', ch.radialL, 'mm'), '', 'L', 'radial'
     )+
     makeRow(5,
       `<strong>RADIAL R SHIFT</strong><em>(+ = right) &nbsp; SPR</em>`,
-      makeArrField('radialR', ch.radialR, 'mm'), '', 'R'
+      makeArrField('radialR', ch.radialR, 'mm'), '', 'R', 'radial'
     )+
     makeRow(6,
       `<strong>MIDDLE OFFSET PRINT HEAD L</strong><em>(+ = right) &nbsp; SPL / P5 only</em>`,
-      makeArrField('midOffsetL', ch.midOffsetL, 'mm'), '', 'L'
+      makeArrField('midOffsetL', ch.midOffsetL, 'mm'), '', 'L', 'midX'
     )+
     makeRow(7,
       `<strong>MIDDLE OFFSET PRINT HEAD R</strong><em>(+ = right) &nbsp; SPR / P2 only</em>`,
-      makeArrField('midOffsetR', ch.midOffsetR, 'mm'), '', 'R'
+      makeArrField('midOffsetR', ch.midOffsetR, 'mm'), '', 'R', 'midX'
     )+
     makeRow(8,
       `<strong>CURRENT POSITION PIEZO</strong><em>MIDDLE PRINT HEAD L &nbsp; [read only]</em>`,
       makeValBox('v-pCurrL', Math.round(ch.piezoCurrL), 'µm', true),
-      'display-row', 'L'
+      'display-row', 'L', 'piezoY'
     )+
     makeRow(9,
       `<strong>SET POSITION PIEZO MIDDLE HEAD L</strong><em>(− = head / bottom)</em>`,
-      makeArrField('piezoSetL', ch.piezoSetL, 'µm'), '', 'L'
+      makeArrField('piezoSetL', ch.piezoSetL, 'µm'), '', 'L', 'piezoY'
     )+
     makeRow(10,
       `<strong>CURRENT POSITION PIEZO</strong><em>MIDDLE PRINT HEAD R &nbsp; [read only]</em>`,
       makeValBox('v-pCurrR', Math.round(ch.piezoCurrR), 'µm', true),
-      'display-row', 'R'
+      'display-row', 'R', 'piezoY'
     )+
     makeRow(11,
       `<strong>SET POSITION PIEZO MIDDLE HEAD R</strong><em>(− = head / bottom)</em>`,
-      makeArrField('piezoSetR', ch.piezoSetR, 'µm'), '', 'R'
+      makeArrField('piezoSetR', ch.piezoSetR, 'µm'), '', 'R', 'piezoY'
     )+
     buildToolBtns();
 
@@ -2016,7 +2044,7 @@ function buildField2HTML(){
   return makeRow(2,
     `<strong>AXIAL SHIFT ALL COLOURS</strong><em>(+ = head / bottom) &nbsp; GLOBAL</em>`,
     makeArrField('globalAxial', S.globalAxial, 'mm'),
-    'global-row'
+    'global-row', '', 'axial'
   );
 }
 
@@ -2308,6 +2336,7 @@ function init(){
   // ── Tutorial ─────────────────────────────────────────────────
   initTutorial();
   initSimCoach();
+  initFieldAnim();
 }
 
 // ════════════════════════════════════════════════════════════
@@ -2626,6 +2655,126 @@ function injectHelpButtons() {
     hideHelpPop();
   });
   document.addEventListener('keydown', e => { if (e.key === 'Escape') hideHelpPop(); });
+}
+
+// ── Per-field animated explainer ───────────────────────────────
+const FIELD_ANIM = {
+  axial:  { title: 'Axial Shift',
+    cap: 'Moves the whole colour <b>up or down</b> the can. The three printheads shift together — vertical registration.' },
+  radial: { title: 'Radial Shift',
+    cap: 'Rotates the colour around the can, so it slides <b>left or right</b> in the unrolled view. All heads move together.' },
+  midX:   { title: 'Middle Head Offset',
+    cap: 'Shifts <b>only the centre printhead</b> sideways, correcting the seam between it and the top/bottom heads.' },
+  piezoY: { title: 'Piezo (Middle Head)',
+    cap: 'The piezo nudges <b>only the middle head up or down</b> with micron precision — fine vertical trim at the seam.' },
+};
+
+let fanimType = null;
+let fanimRAF  = null;
+let fanimT0   = 0;
+
+function drawFieldAnim(type, ms) {
+  const c = document.getElementById('fanim-canvas');
+  const ctx = c.getContext('2d');
+  const W = c.width, H = c.height;
+  ctx.clearRect(0, 0, W, H);
+
+  // Can face
+  const fw = 96, fh = 118, fx = (W - fw) / 2, fy = (H - fh) / 2;
+  const gg = ctx.createLinearGradient(fx, 0, fx + fw, 0);
+  gg.addColorStop(0, '#7f868d'); gg.addColorStop(0.5, '#cbd0d4'); gg.addColorStop(1, '#7f868d');
+  ctx.fillStyle = gg; ctx.fillRect(fx, fy, fw, fh);
+  ctx.strokeStyle = '#2a2f36'; ctx.lineWidth = 1; ctx.strokeRect(fx, fy, fw, fh);
+
+  const inkCss = (typeof S !== 'undefined' && S.selCh >= 0) ? CH_CSS[S.selCh] : '#58a6ff';
+  const segH = fh / 3, mgap = 5, mh = segH - mgap * 2, mw = fw - 28;
+  const baseX = fx + 14;
+  const A = 13, s = Math.sin(ms / 620);
+
+  let dxAll = 0, dyAll = 0, dxMid = 0, dyMid = 0;
+  if (type === 'axial')  dyAll = A * s;
+  if (type === 'radial') dxAll = A * s;
+  if (type === 'midX')   dxMid = A * s;
+  if (type === 'piezoY') dyMid = A * s;
+
+  for (let i = 0; i < 3; i++) {
+    const segY = fy + i * segH + mgap;
+    // Ideal (reference) dashed outline
+    ctx.save();
+    ctx.setLineDash([3, 3]); ctx.strokeStyle = 'rgba(255,255,255,0.30)'; ctx.lineWidth = 1;
+    ctx.strokeRect(baseX, segY, mw, mh);
+    ctx.restore();
+    // Actual ink segment, offset by the animated transform
+    const isMid = i === 1;
+    const dx = dxAll + (isMid ? dxMid : 0);
+    const dy = dyAll + (isMid ? dyMid : 0);
+    ctx.globalAlpha = 0.9;
+    ctx.fillStyle = inkCss;
+    ctx.fillRect(baseX + dx, segY + dy, mw, mh);
+    ctx.globalAlpha = 1;
+  }
+
+  // Motion direction arrow
+  const cxm = W / 2, cym = H - 12;
+  ctx.strokeStyle = ctx.fillStyle = 'rgba(88,166,255,0.85)'; ctx.lineWidth = 2;
+  ctx.beginPath();
+  if (type === 'axial' || type === 'piezoY') { ctx.moveTo(cxm, cym - 7); ctx.lineTo(cxm, cym + 7); }
+  else { ctx.moveTo(cxm - 9, cym); ctx.lineTo(cxm + 9, cym); }
+  ctx.stroke();
+}
+
+function fanimLoop(ts) {
+  if (!fanimType) return;
+  if (!fanimT0) fanimT0 = ts;
+  drawFieldAnim(fanimType, ts - fanimT0);
+  fanimRAF = requestAnimationFrame(fanimLoop);
+}
+
+function openFieldAnim(anchor, type) {
+  const pop = document.getElementById('fanim-pop');
+  const def = FIELD_ANIM[type];
+  if (!def) return;
+  document.getElementById('fanim-title').textContent = def.title;
+  document.getElementById('fanim-cap').innerHTML = def.cap;
+  pop.classList.add('show');
+  pop._anchor = anchor;
+  // Position beside the badge, flipping/clamping to stay on screen
+  const r = anchor.getBoundingClientRect();
+  const pw = pop.offsetWidth, ph = pop.offsetHeight;
+  let left = r.right + 8;
+  if (left + pw > window.innerWidth - 8) left = r.left - pw - 8;
+  left = Math.max(8, Math.min(window.innerWidth - pw - 8, left));
+  let top = r.top + r.height / 2 - ph / 2;
+  top = Math.max(8, Math.min(window.innerHeight - ph - 8, top));
+  pop.style.left = left + 'px';
+  pop.style.top  = top + 'px';
+  // Start the loop
+  fanimType = type; fanimT0 = 0;
+  cancelAnimationFrame(fanimRAF);
+  fanimRAF = requestAnimationFrame(fanimLoop);
+}
+
+function closeFieldAnim() {
+  document.getElementById('fanim-pop').classList.remove('show');
+  fanimType = null;
+  cancelAnimationFrame(fanimRAF);
+}
+
+function initFieldAnim() {
+  // Delegate: badges are rebuilt with the reg panel
+  document.addEventListener('click', e => {
+    const q = e.target.closest('.help-q.fld');
+    if (q) {
+      e.stopPropagation();
+      const pop = document.getElementById('fanim-pop');
+      if (pop.classList.contains('show') && pop._anchor === q) { closeFieldAnim(); return; }
+      openFieldAnim(q, q.dataset.anim);
+      return;
+    }
+    const pop = document.getElementById('fanim-pop');
+    if (pop.classList.contains('show') && !e.target.closest('#fanim-pop')) closeFieldAnim();
+  });
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeFieldAnim(); });
 }
 
 // ── Guided coach (shared by SIMULATE 1 COLOR & TOTAL MISALIGNMENT) ──────
