@@ -304,14 +304,15 @@ button.tool-btn:hover { border-color: var(--accent); color: var(--accent); }
 .ch-chip.off { opacity: 0.28; border-color: #333; }
 .ch-chip:hover { border-color: #888; }
 
-/* ── FOCUS BUTTONS ───────────────── */
-.focus-btn {
+/* ── FOCUS / CAN-SIZE BUTTONS ───────────────── */
+.focus-btn, .can-size-btn {
   padding: 2px 10px; background: #111; border: 1px solid #333;
   color: #666; cursor: pointer; font-family: 'Courier New', monospace;
   font-size: 10px; border-radius: 2px; transition: all 0.1s;
 }
-.focus-btn:hover { border-color: #666; color: #aaa; }
+.focus-btn:hover, .can-size-btn:hover { border-color: #666; color: #aaa; }
 .focus-btn.active { border-color: var(--accent); color: var(--accent); background: rgba(88,166,255,0.08); }
+.can-size-btn.active { border-color: #f5a623; color: #f5a623; background: rgba(245,166,35,0.08); }
 
 /* ── CENTER VIEW ─────────────────── */
 #view-panel {
@@ -375,12 +376,18 @@ footer {
   </div>
 
   <div id="view-panel">
-    <div class="plabel" style="display:flex;align-items:center;justify-content:space-between;">
+    <div class="plabel" style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
       <span>UNROLLED CAN VIEW &mdash; ALIGNMENT TEST PATTERN</span>
-      <span id="focus-btns" style="display:flex;gap:4px;">
+      <span style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+        <span style="color:#555;font-size:10px;letter-spacing:.05em;">CAN SIZE</span>
+        <button class="can-size-btn active" data-size="12oz">12oz</button>
+        <button class="can-size-btn" data-size="16oz">16oz</button>
+        <span style="width:1px;background:#333;height:14px;display:inline-block;margin:0 2px;"></span>
         <button class="focus-btn active" data-side="-1">BOTH</button>
         <button class="focus-btn" data-side="0">CAN1</button>
         <button class="focus-btn" data-side="1">CAN2</button>
+        <span style="width:1px;background:#333;height:14px;display:inline-block;margin:0 2px;"></span>
+        <button class="focus-btn" id="btn-crop">CROP IDLE</button>
       </span>
     </div>
     <canvas id="unrolled-canvas"></canvas>
@@ -463,6 +470,8 @@ const S = {
   focusSide: -1,   // -1=both, 0=CAN1 left, 1=CAN2 right
   pattern: 'letter', // reg text pattern: letter | grid | target | burst
   chVisible: CH_KEYS.map(() => true), // per-channel visibility toggle
+  canSize: '12oz',   // '12oz' | '16oz' — controls active print zone height
+  cropIdle: false,   // when true, unrolled view hides idle nozzle zone above print area
   ch: CH_KEYS.map(() => newChannel()),
 };
 
@@ -489,11 +498,14 @@ const HEAD_PX_H  = 209;
 const OVERLAP_PX = 6;     // exaggerated from real ~0.36mm for visibility
 const NET_H      = HEAD_PX_H - OVERLAP_PX;   // 203
 const CAN_H      = NET_H * 2 + HEAD_PX_H;    // 615px — full 3-head stack (P3+P2+P1)
-// Artwork print height: source separations are 3096px @ 700dpi = 112.3mm (12oz)
-// Active nozzles fire only within this zone; nozzles above are idle.
-// 12oz: P1 full + lower ~53px of P2. 16oz would be taller, reaching into P3.
-const PRINT_H    = Math.round(112.3 * MM_PX); // 359px — 12oz active print zone
-const PRINT_OFFSET_Y = CAN_H - PRINT_H;       // 256px — idle zone at top of stack
+// Artwork print heights per can size (source: 700dpi Colorgate separations)
+// 12oz: 3096px @ 700dpi = 112.3mm — P1 full + lower portion of P2
+// 16oz: placeholder — update PRINT_H_16OZ with real artwork height when available
+const PRINT_H_12OZ = Math.round(112.3 * MM_PX);  // 359px
+const PRINT_H_16OZ = Math.round(150.0 * MM_PX);  // 480px — placeholder, update with real value
+// Active values — updated by setCanSize()
+let PRINT_H        = PRINT_H_12OZ;
+let PRINT_OFFSET_Y = CAN_H - PRINT_H;
 const CAN_W      = 663;  // full can circumference: π×66mm × 3.2px/mm = 207.3mm × 3.2 ≈ 663px
 const L_CAN_X    = 20;
 const R_CAN_X    = L_CAN_X + CAN_W + 30; // 30px gap between cans
@@ -537,6 +549,15 @@ function loadArtwork() {
     };
     img.src = `artwork/golden-mango/${ch}.png`;
   });
+}
+
+function setCanSize(sz) {
+  S.canSize = sz;
+  PRINT_H        = sz === '16oz' ? PRINT_H_16OZ : PRINT_H_12OZ;
+  PRINT_OFFSET_Y = CAN_H - PRINT_H;
+  document.querySelectorAll('.can-size-btn').forEach(b =>
+    b.classList.toggle('active', b.dataset.size === sz));
+  renderAll();
 }
 // ─────────────────────────────────────────────────────────────
 
@@ -901,16 +922,19 @@ function renderUnrolled() {
 
   let sc, tx, ty;
   const focused = S.focusSide >= 0;
+  // cropIdle: scale/translate as if only the active print zone exists
+  const viewH   = S.cropIdle ? PRINT_H : CAN_H;
+  const viewTopY = S.cropIdle ? (CAN_TOP_Y + PRINT_OFFSET_Y) : CAN_TOP_Y;
   if (focused) {
-    const pad = 40;
+    const pad = 16;
     const canX = S.focusSide === 0 ? L_CAN_X : R_CAN_X;
-    sc = Math.min((W - pad*2) / CAN_W, (H - pad*2) / CAN_H);
+    sc = Math.min((W - pad*2) / CAN_W, (H - pad*2) / viewH);
     tx = pad - canX * sc;
-    ty = pad - CAN_TOP_Y * sc;
+    ty = pad - viewTopY * sc;
   } else {
-    const nW = R_CAN_X+CAN_W+24, nH = CAN_TOP_Y+CAN_H+28;
+    const nW = R_CAN_X+CAN_W+24, nH = viewTopY+viewH+28;
     sc = Math.min((W-8)/nW, (H-8)/nH);
-    tx = 4; ty = 4;
+    tx = 4; ty = S.cropIdle ? (4 - PRINT_OFFSET_Y * sc) : 4;
   }
   uCtx.save(); uCtx.translate(tx, ty); uCtx.scale(sc,sc);
 
@@ -1557,12 +1581,26 @@ function buildChLegend(){
 }
 
 function initFocusBtns() {
-  document.querySelectorAll('.focus-btn').forEach(btn => {
+  // Focus (BOTH / CAN1 / CAN2) — exclude crop button which has no data-side
+  document.querySelectorAll('.focus-btn[data-side]').forEach(btn => {
     btn.addEventListener('click', () => {
       S.focusSide = parseInt(btn.dataset.side);
-      document.querySelectorAll('.focus-btn').forEach(b => b.classList.toggle('active', b === btn));
+      document.querySelectorAll('.focus-btn[data-side]').forEach(b => b.classList.toggle('active', b === btn));
       renderAll();
     });
+  });
+
+  // Crop idle toggle
+  const cropBtn = document.getElementById('btn-crop');
+  cropBtn.addEventListener('click', () => {
+    S.cropIdle = !S.cropIdle;
+    cropBtn.classList.toggle('active', S.cropIdle);
+    renderAll();
+  });
+
+  // Can size selector
+  document.querySelectorAll('.can-size-btn').forEach(btn => {
+    btn.addEventListener('click', () => setCanSize(btn.dataset.size));
   });
 }
 
