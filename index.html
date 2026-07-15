@@ -1731,8 +1731,11 @@ function selectStation(stIdx){
 function makeRow(num, labelHTML, ctrlHTML, classes='', side=''){
   // side: 'L' = SPL/CAN1 only, 'R' = SPR/CAN2 only, '' = always active
   let muted = false;
-  if (side === 'R' && S.focusSide === 1) muted = true;
-  if (side === 'L' && S.focusSide === 0) muted = true;
+  const tutActive = document.getElementById('tut-overlay')?.classList.contains('active');
+  if (!tutActive) {
+    if (side === 'R' && S.focusSide === 0) muted = true;  // LEFT CAN → mute R fields
+    if (side === 'L' && S.focusSide === 1) muted = true;  // RIGHT CAN → mute L fields
+  }
   return `<div class="sr-row ${classes}${muted ? ' muted' : ''}">
     <div class="sr-num">${num}</div>
     <div class="sr-label">${labelHTML}</div>
@@ -2361,11 +2364,13 @@ function tutRender() {
 function tutStart() {
   tutStep = 0;
   document.getElementById('tut-overlay').classList.add('active');
+  if (S.selCh >= 0) buildRegPanel();
   tutRender();
 }
 
 function tutEnd() {
   document.getElementById('tut-overlay').classList.remove('active');
+  if (S.selCh >= 0) buildRegPanel();
 }
 
 function initTutorial() {
