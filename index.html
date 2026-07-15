@@ -2032,7 +2032,7 @@ function buildRegPanel(){
     makeRow(8,
       `<strong>CURRENT POSITION PIEZO</strong><em>MIDDLE PRINT HEAD L &nbsp; [read only]</em>`,
       makeValBox('v-pCurrL', Math.round(ch.piezoCurrL), 'µm', true),
-      'display-row', 'L', 'piezoY'
+      'display-row', 'L'
     )+
     makeRow(9,
       `<strong>SET POSITION PIEZO MIDDLE HEAD L</strong><em>(− = head / bottom)</em>`,
@@ -2041,7 +2041,7 @@ function buildRegPanel(){
     makeRow(10,
       `<strong>CURRENT POSITION PIEZO</strong><em>MIDDLE PRINT HEAD R &nbsp; [read only]</em>`,
       makeValBox('v-pCurrR', Math.round(ch.piezoCurrR), 'µm', true),
-      'display-row', 'R', 'piezoY'
+      'display-row', 'R'
     )+
     makeRow(11,
       `<strong>SET POSITION PIEZO MIDDLE HEAD R</strong><em>(− = head / bottom)</em>`,
